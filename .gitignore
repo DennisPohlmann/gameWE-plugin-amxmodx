@@ -1,0 +1,13 @@
+# build output
+/build/
+/dist/
+*.amxx
+*.amx
+*.tar.gz
+*.sha256
+
+# editors / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
