@@ -1,4 +1,4 @@
-# Installing the gameWE AMX Mod X plugin
+# Installing gameWE - AMX Mod X plugin
 
 This guide installs the gameWE plugin on a Half-Life 1 (GoldSrc) game server, step by
 step. The plugin only writes log lines and answers the collector, so the
@@ -192,14 +192,8 @@ shows up in chat and is answered as well. `/gamewe` opens the gameWE menu.
 
 On the first start the plugin writes `addons/amxmodx/configs/plugins/gamewe.cfg` with all
 cvars and their defaults. Change the values there; they are read on every map change.
-
-| Cvar | Default | Meaning |
-|------|---------|---------|
-| `gamewe_message_prefix` | | Text in front of every gameWE chat message. |
-| `gamewe_chat_cooldown` | `1.0` | Seconds between two logged `/` commands of one player. `0` turns it off. |
-| `gamewe_log_damage` | `1` | Counter-Strike: log an `attacked` line for every bullet hit. |
-
-More about the cvars, chat commands and server commands is in the [README](README.md).
+All cvars and server commands are in [CONFIG.md](CONFIG.md), the chat commands in
+[USAGE.md](USAGE.md).
 
 ## Update
 
@@ -208,7 +202,7 @@ More about the cvars, chat commands and server commands is in the [README](READM
 2. Change the map or restart the server.
 
 `plugins.ini` and `gamewe.cfg` stay as they are. New cvars are added to `gamewe.cfg`
-automatically. Read the [CHANGELOG](CHANGELOG.md) before an update.
+automatically. Read the [CHANGELOG](../CHANGELOG.md) before an update.
 
 ## Uninstall
 
@@ -226,7 +220,10 @@ automatically. Read the [CHANGELOG](CHANGELOG.md) before an update.
    `configs/plugins/gamewe.cfg`.
 
 The collector keeps working with the `gameme_amx_*` command names, the gameWE plugin
-accepts them.
+accepts them. Log lines are the same as before, with two changes: weapon names in
+`weaponstats` are the log names of the kill lines (Day of Defeat used display names
+before), and `attacked` lines carry the real damage instead of `0`. `gameme_webpage`
+is gone.
 
 ## Troubleshooting
 
