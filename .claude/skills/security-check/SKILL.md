@@ -44,7 +44,9 @@ plugin; they are mapped to what does.
 7. **Rate limits:** chat triggers that make the collector answer go through
    the `gamewe_chat_cooldown` check in `gamewe_client_say`.
 8. **Storage:** the plugin writes no files except the AutoExecConfig
-   `configs/plugins/gamewe.cfg`; any new file uses a fixed name.
+   `configs/plugins/gamewe.cfg` and the nVault `gamewe_settings` (player
+   settings keyed by SteamID, pruned after 180 days, values range-checked
+   on load); any new file uses a fixed name.
 9. **Input validation:** collector arguments parsed with
    `gamewe_next_token`/`gamewe_rest_of` into sized buffers, numbers with
    `is_str_num` and range checks (time 1-120, flags 0/1), control

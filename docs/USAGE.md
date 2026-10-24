@@ -37,3 +37,18 @@ Counter-Strike and Day of Defeat get the full menu, the other games a short one
 settings menu. The plugin hides `settings` and `gamewe_settings` and does not log them, so
 the collector does not answer them as well. This is the only exception to the rule above. The menu has "Hide me in the ranking"
 (sends `/gamewe_hideranking 1`) and "Show me in the ranking" (`/gamewe_hideranking 0`).
+
+In Counter-Strike, Day of Defeat and Team Fortress Classic the settings menu also
+has "Damage display" with the player's current value: server default, off, menu or
+chat. Selecting it switches to the next value and shows the menu again;
+"server default" follows `gamewe_damage_display` (the value is shown in
+brackets), and the entry is disabled when the server sets
+`gamewe_damage_display_allow 0`. The choice is saved per SteamID (see
+[CONFIG.md](CONFIG.md#per-player-settings)).
+
+The damage display shows the damage of the current life, per opponent (damage
+and hits): "Damage given" (the opponents the player hit, `(killed)` for a kill)
+and "Damage taken" (who hit the player, `(killer)` for the killer). With "menu"
+it is shown as a menu on death and, in Counter-Strike and Day of Defeat, also at
+round end for the players still alive; with "chat" it is shown in two chat lines
+on death.

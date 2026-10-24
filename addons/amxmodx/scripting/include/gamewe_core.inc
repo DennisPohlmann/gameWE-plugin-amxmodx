@@ -14,6 +14,11 @@
  * Define GAMEWE_FULL_MENU before including this file for the long menu
  * (rank, clans, weapons, ...); otherwise the short menu is used.
  *
+ * Define GAMEWE_DAMAGE_DISPLAY for mods with damage data (csx, dodx, tfcx,
+ * see gamewe_xstats.inc): adds the cvars gamewe_damage_display(_allow) and
+ * the per-player "Damage display" setting, saved in the nVault
+ * "gamewe_settings".
+ *
  * Fork of the gameME Plugin 2.4 for AMX Mod X
  * (https://github.com/gamemedev/plugin-amxmodx),
  * Copyright (C) 2007-2017 TTS Oetzel & Goerz GmbH, licensed under the
@@ -47,6 +52,9 @@
 #include <amxmodx>
 #include <amxmisc>
 #include <celltrie>
+#if defined GAMEWE_DAMAGE_DISPLAY
+	#include <nvault>
+#endif
 
 // written by "make build" from the git tag or the VERSION file
 #tryinclude <gamewe_version>
@@ -100,6 +108,18 @@ new g_gamewe_menu_main
 new g_gamewe_menu_settings
 new Float:g_gamewe_last_trigger[MAX_PLAYERS + 1]
 
+#if defined GAMEWE_DAMAGE_DISPLAY
+// per-player settings: -1 = server default (cvar), otherwise the player's own choice
+#define GAMEWE_SETTING_DEFAULT   -1
+#define GAMEWE_SETTINGS_VAULT    "gamewe_settings"
+#define GAMEWE_SETTINGS_MAX_AGE  (180 * 86400)  // settings of players not seen for 180 days are removed
+
+new g_gamewe_damage_display
+new g_gamewe_damage_display_allow
+new g_gamewe_settings_vault = INVALID_HANDLE
+new g_gamewe_player_damage_display[MAX_PLAYERS + 1] = { GAMEWE_SETTING_DEFAULT, ... }
+#endif
+
 stock const GAMEWE_MENU_KEYS = MENU_KEY_0|MENU_KEY_1|MENU_KEY_2|MENU_KEY_3|MENU_KEY_4|MENU_KEY_5|MENU_KEY_6|MENU_KEY_7|MENU_KEY_8|MENU_KEY_9
 #define GAMEWE_MENU_TITLE "gameWE Display Menu"
 
@@ -118,6 +138,19 @@ stock gamewe_core_init(const mod_name[])
 		"Text put in front of every gameWE chat message")
 	g_gamewe_chat_cooldown = create_cvar("gamewe_chat_cooldown", "1.0", FCVAR_NONE,
 		"Seconds a player has to wait between two logged gameWE chat commands (0 = off)", true, 0.0, true, 30.0)
+#if defined GAMEWE_DAMAGE_DISPLAY
+	g_gamewe_damage_display = create_cvar("gamewe_damage_display", "0", FCVAR_NONE,
+		"Default for players: damage summary on death (0 = off, 1 = menu, 2 = chat); players can change it in the gameWE settings menu", true, 0.0, true, 2.0)
+	g_gamewe_damage_display_allow = create_cvar("gamewe_damage_display_allow", "1", FCVAR_NONE,
+		"Allow the damage display at all (0 = off for everyone, players cannot enable it)", true, 0.0, true, 1.0)
+
+	g_gamewe_settings_vault = nvault_open(GAMEWE_SETTINGS_VAULT)
+	if (g_gamewe_settings_vault == INVALID_HANDLE) {
+		log_amx("gameWE: cannot open the nVault %s, player settings are not saved", GAMEWE_SETTINGS_VAULT)
+	} else {
+		nvault_prune(g_gamewe_settings_vault, 0, get_systime() - GAMEWE_SETTINGS_MAX_AGE)
+	}
+#endif
 	AutoExecConfig(true, "gamewe")
 
 	g_gamewe_blocked_commands = TrieCreate()
@@ -574,6 +607,9 @@ public gamewe_cmd_prefix_clear(id, level, cid)
 public client_putinserver(id)
 {
 	g_gamewe_last_trigger[id] = 0.0
+#if defined GAMEWE_DAMAGE_DISPLAY
+	gamewe_load_player_settings(id)
+#endif
 }
 
 public gamewe_client_say(client)
@@ -619,7 +655,7 @@ public gamewe_client_say(client)
 	return PLUGIN_HANDLED
 }
 
-// console command amx_gamewe_settings, opens the settings menu for the player himself
+// console command amx_gamewe_settings, opens the settings menu for the player
 public gamewe_client_settings(client)
 {
 	if (client >= 1 && client <= MaxClients && is_user_connected(client)) {
@@ -627,6 +663,122 @@ public gamewe_client_settings(client)
 	}
 	return PLUGIN_HANDLED
 }
+
+
+#if defined GAMEWE_DAMAGE_DISPLAY
+/*
+ * Per-player settings, saved in the nVault "gamewe_settings" as
+ * "<authid>#<setting>". LAN, pending and bot ids are shared by several
+ * players, so their choices are not saved and last until the next map.
+ */
+
+public client_authorized(id, const authid[])
+{
+	gamewe_load_player_settings(id)
+}
+
+public plugin_end()
+{
+	if (g_gamewe_settings_vault != INVALID_HANDLE) {
+		nvault_close(g_gamewe_settings_vault)
+		g_gamewe_settings_vault = INVALID_HANDLE
+	}
+}
+
+stock bool:gamewe_settings_key(id, const setting[], key[], len)
+{
+	if (g_gamewe_settings_vault == INVALID_HANDLE || !is_user_connected(id) || is_user_bot(id) || is_user_hltv(id)) {
+		return false
+	}
+	new authid[MAX_AUTHID_LENGTH]
+	get_user_authid(id, authid, charsmax(authid))
+	if (contain(authid, ":") == -1) {
+		return false
+	}
+	formatex(key, len, "%s#%s", authid, setting)
+	return true
+}
+
+stock gamewe_load_player_settings(id)
+{
+	if (id < 1 || id > MaxClients) {
+		return
+	}
+	g_gamewe_player_damage_display[id] = GAMEWE_SETTING_DEFAULT
+
+	new key[MAX_AUTHID_LENGTH + 32], value[8], timestamp
+	if (!gamewe_settings_key(id, "damage_display", key, charsmax(key))) {
+		return
+	}
+	if (nvault_lookup(g_gamewe_settings_vault, key, value, charsmax(value), timestamp)) {
+		new setting = is_str_num(value) ? str_to_num(value) : GAMEWE_SETTING_DEFAULT
+		if (setting >= 0 && setting <= 2) {
+			g_gamewe_player_damage_display[id] = setting
+			// keeps the entry from being pruned
+			nvault_touch(g_gamewe_settings_vault, key)
+		}
+	}
+}
+
+stock gamewe_save_player_setting(id, const setting[], value)
+{
+	new key[MAX_AUTHID_LENGTH + 32]
+	if (!gamewe_settings_key(id, setting, key, charsmax(key))) {
+		return
+	}
+	if (value == GAMEWE_SETTING_DEFAULT) {
+		nvault_remove(g_gamewe_settings_vault, key)
+	} else {
+		new text[8]
+		num_to_str(value, text, charsmax(text))
+		nvault_set(g_gamewe_settings_vault, key, text)
+	}
+}
+
+// the player's damage display mode (0 = off, 1 = menu, 2 = chat): the player's
+// own choice, otherwise the server default gamewe_damage_display
+stock gamewe_get_damage_display(id)
+{
+	if (get_pcvar_num(g_gamewe_damage_display_allow) != 1) {
+		return 0
+	}
+	new mode = g_gamewe_player_damage_display[id]
+	if (mode == GAMEWE_SETTING_DEFAULT) {
+		mode = get_pcvar_num(g_gamewe_damage_display)
+	}
+	if (mode < 0 || mode > 2) {
+		mode = 0
+	}
+	return mode
+}
+
+stock gamewe_damage_mode_name(mode, name[], len)
+{
+	switch (mode) {
+		case 1:  copy(name, len, "menu")
+		case 2:  copy(name, len, "chat")
+		default: copy(name, len, "off")
+	}
+}
+
+// draws the "Damage display" entry with the player's current value
+public gamewe_menu_settings_callback(id, menu, item)
+{
+	new text[64], mode_name[16]
+	if (get_pcvar_num(g_gamewe_damage_display_allow) != 1) {
+		menu_item_setname(menu, item, "Damage display: disabled by the server")
+		return ITEM_DISABLED
+	}
+	gamewe_damage_mode_name(gamewe_get_damage_display(id), mode_name, charsmax(mode_name))
+	if (g_gamewe_player_damage_display[id] == GAMEWE_SETTING_DEFAULT) {
+		formatex(text, charsmax(text), "Damage display: server default (%s)", mode_name)
+	} else {
+		formatex(text, charsmax(text), "Damage display: %s", mode_name)
+	}
+	menu_item_setname(menu, item, text)
+	return ITEM_ENABLED
+}
+#endif
 
 
 /*
@@ -654,10 +806,14 @@ stock gamewe_build_menus()
 	menu_additem(g_gamewe_menu_main, "Display Help",           "/help")
 #endif
 
-	// the collector toggles the setting and answers the player with psay
+	// the collector toggles the ranking setting and answers the player with psay;
+	// the display settings are kept by the plugin and show their current value
 	g_gamewe_menu_settings = menu_create("gameWE - Settings", "gamewe_menu_command_handle")
 	menu_additem(g_gamewe_menu_settings, "Hide me in the ranking", "/gamewe_hideranking 1")
 	menu_additem(g_gamewe_menu_settings, "Show me in the ranking", "/gamewe_hideranking 0")
+#if defined GAMEWE_DAMAGE_DISPLAY
+	menu_additem(g_gamewe_menu_settings, "Damage display", "#damage_display", 0, menu_makecallback("gamewe_menu_settings_callback"))
+#endif
 	menu_setprop(g_gamewe_menu_settings, MPROP_PERPAGE, 0)
 }
 
@@ -694,5 +850,15 @@ public gamewe_menu_command_handle(id, menu, item)
 	if (command[0] == '/') {
 		gamewe_log_player_event(id, "say", command)
 	}
+#if defined GAMEWE_DAMAGE_DISPLAY
+	if (equal(command, "#damage_display") && get_pcvar_num(g_gamewe_damage_display_allow) == 1) {
+		// server default -> off -> menu -> chat -> server default
+		new setting = g_gamewe_player_damage_display[id]
+		setting = (setting >= 2) ? GAMEWE_SETTING_DEFAULT : (setting + 1)
+		g_gamewe_player_damage_display[id] = setting
+		gamewe_save_player_setting(id, "damage_display", setting)
+		gamewe_display_menu(id, menu)
+	}
+#endif
 	return PLUGIN_HANDLED
 }

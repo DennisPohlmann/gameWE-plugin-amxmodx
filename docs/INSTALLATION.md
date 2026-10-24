@@ -33,10 +33,10 @@ need modules of other games and fail to load.
 
 | Game | Game folder | Plugin | Modules in `modules.ini` |
 |------|-------------|--------|--------------------------|
-| Counter-Strike 1.6 | `cstrike/` | `gamewe_cstrike.amxx` | `cstrike`, `csx`, `fakemeta`, `hamsandwich` |
-| Counter-Strike: Condition Zero | `czero/` | `gamewe_cstrike.amxx` | `cstrike`, `csx`, `fakemeta`, `hamsandwich` |
-| Day of Defeat | `dod/` | `gamewe_dod.amxx` | `dodx`, `dodfun`, `hamsandwich` |
-| Team Fortress Classic | `tfc/` | `gamewe_tfc.amxx` | `tfcx`, `hamsandwich` |
+| Counter-Strike 1.6 | `cstrike/` | `gamewe_cstrike.amxx` | `cstrike`, `csx`, `fakemeta`, `hamsandwich`, `nvault` |
+| Counter-Strike: Condition Zero | `czero/` | `gamewe_cstrike.amxx` | `cstrike`, `csx`, `fakemeta`, `hamsandwich`, `nvault` |
+| Day of Defeat | `dod/` | `gamewe_dod.amxx` | `dodx`, `dodfun`, `hamsandwich`, `nvault` |
+| Team Fortress Classic | `tfc/` | `gamewe_tfc.amxx` | `tfcx`, `hamsandwich`, `nvault` |
 | Natural Selection | `ns/` | `gamewe_ns.amxx` | - |
 | Half-Life Deathmatch | `valve/` | `gamewe_hlmp.amxx` | - |
 
@@ -207,8 +207,9 @@ automatically. Read the [CHANGELOG](../CHANGELOG.md) before an update.
 ## Uninstall
 
 1. Remove the `gamewe_<game>.amxx` line from `addons/amxmodx/configs/plugins.ini`.
-2. Delete `addons/amxmodx/plugins/gamewe_*.amxx` and
-   `addons/amxmodx/configs/plugins/gamewe.cfg`.
+2. Delete `addons/amxmodx/plugins/gamewe_*.amxx`,
+   `addons/amxmodx/configs/plugins/gamewe.cfg` and the players' saved settings
+   `addons/amxmodx/data/vault/gamewe_settings.vault`.
 3. Change the map or restart the server.
 
 ## Coming from the gameME plugin

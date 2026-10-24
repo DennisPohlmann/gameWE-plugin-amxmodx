@@ -3,7 +3,7 @@
  *
  * Logs extended player statistics to the game server log for the gameWE
  * collector and shows its answers (rank, top10, session ...) in game.
- * Needs the modules tfcx and hamsandwich.
+ * Needs the modules tfcx, hamsandwich and nvault.
  *
  * Fork of the gameME Plugin 2.4 for AMX Mod X
  * (https://github.com/gamemedev/plugin-amxmodx),
@@ -30,6 +30,7 @@
 #include <amxmodx>
 #include <tfcx>
 
+#define GAMEWE_DAMAGE_DISPLAY
 #define GAMEWE_WSTATS_SIZE STATSX_MAX_STATS
 #include <gamewe_core>
 #include <gamewe_xstats>

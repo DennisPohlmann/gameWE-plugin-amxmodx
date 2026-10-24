@@ -17,7 +17,9 @@ the GoldSrc counterpart of the
   (`gamewe_amx_psay`, `gamewe_amx_msay`, ...),
 - hides the stats chat commands (`rank`, `/top10`, ...) from chat, but still
   logs them for the collector,
-- shows the gameWE menu (`/gamewe`).
+- shows the gameWE menu (`/gamewe`) and, in Counter-Strike, Day of Defeat and
+  Team Fortress Classic, a damage summary on death; every player chooses the
+  damage display in the gameWE settings menu, `gamewe.cfg` only sets the default.
 
 The log format and the command interface stay compatible with gameME.
 
@@ -37,9 +39,9 @@ There is one plugin per game:
 
 | Game | Plugin | AMX Mod X modules |
 |------|--------|-------------------|
-| Counter-Strike 1.6, Condition Zero | `gamewe_cstrike.amxx` | cstrike, csx, fakemeta, hamsandwich |
-| Day of Defeat | `gamewe_dod.amxx` | dodx, dodfun, hamsandwich |
-| Team Fortress Classic | `gamewe_tfc.amxx` | tfcx, hamsandwich |
+| Counter-Strike 1.6, Condition Zero | `gamewe_cstrike.amxx` | cstrike, csx, fakemeta, hamsandwich, nvault |
+| Day of Defeat | `gamewe_dod.amxx` | dodx, dodfun, hamsandwich, nvault |
+| Team Fortress Classic | `gamewe_tfc.amxx` | tfcx, hamsandwich, nvault |
 | Natural Selection | `gamewe_ns.amxx` | - |
 | Half-Life Deathmatch | `gamewe_hlmp.amxx` | - |
 
