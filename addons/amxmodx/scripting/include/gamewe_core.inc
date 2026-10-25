@@ -63,6 +63,8 @@
 #endif
 
 #define GAMEWE_TAG          "gameWE"
+#define GAMEWE_CHAT_TAG     "[gameWE]" // start of the collector's chat lines
+#define GAMEWE_MAX_PREFIX   64
 #define GAMEWE_MAX_ARGS     1024    // raw argument string of a server command
 #define GAMEWE_MAX_CHAT     192     // SayText / TextMsg limit of the engine
 #define GAMEWE_MAX_MENU     512     // show_menu limit of the engine
@@ -108,6 +110,13 @@ new g_gamewe_menu_main
 new g_gamewe_menu_settings
 new Float:g_gamewe_last_trigger[MAX_PLAYERS + 1]
 
+// ranking state from the collector (gamewe_hidestate): 0 = shown, 1 = admin,
+// 2 = banned, 3 = hidden by the player, -1 = not known yet
+#define GAMEWE_HIDERANKING_UNKNOWN -1
+new g_gamewe_hideranking[MAX_PLAYERS + 1] = { GAMEWE_HIDERANKING_UNKNOWN, ... }
+new bool:g_gamewe_hideranking_wait[MAX_PLAYERS + 1]
+new Float:g_gamewe_hideranking_asked[MAX_PLAYERS + 1] // last request, at most one per 5 seconds
+
 #if defined GAMEWE_DAMAGE_DISPLAY
 // per-player settings: -1 = server default (cvar), otherwise the player's own choice
 #define GAMEWE_SETTING_DEFAULT   -1
@@ -135,7 +144,7 @@ stock gamewe_core_init(const mod_name[])
 	create_cvar("gamewe_plugin_version", plugin_version, FCVAR_SPONLY|FCVAR_SERVER, "gameWE plugin version (read only)")
 
 	g_gamewe_message_prefix = create_cvar("gamewe_message_prefix", "", FCVAR_NONE,
-		"Text put in front of every gameWE chat message")
+		"Prefix of every gameWE chat message, also of the collector's answers (up to 63 characters, color tags like {green} or {default} allowed on Counter-Strike)")
 	g_gamewe_chat_cooldown = create_cvar("gamewe_chat_cooldown", "1.0", FCVAR_NONE,
 		"Seconds a player has to wait between two logged gameWE chat commands (0-30, 0 = off)", true, 0.0, true, 30.0)
 #if defined GAMEWE_DAMAGE_DISPLAY
@@ -172,6 +181,7 @@ stock gamewe_core_init(const mod_name[])
 	gamewe_register_srvcmd("msay",   "gamewe_cmd_msay",   "<time> <userid> [handler] <message> - menu")
 	gamewe_register_srvcmd("browse", "gamewe_cmd_browse", "<userid> <url> - open a website in the MOTD window")
 	gamewe_register_srvcmd("swap",   "gamewe_cmd_swap",   "<userid> - move a player to the opposite team")
+	gamewe_register_srvcmd("hidestate", "gamewe_cmd_hidestate", "<userid> <hideranking> - ranking state of a player for the settings menu")
 	register_srvcmd("gamewe_block_commands_values", "gamewe_cmd_block_values", -1, "<command ...|clear> - more chat commands that are silent with /")
 	register_srvcmd("gameme_block_commands_values", "gamewe_cmd_block_values")
 	register_srvcmd("gamewe_message_prefix_clear", "gamewe_cmd_prefix_clear", -1, "- empty gamewe_message_prefix")
@@ -212,6 +222,19 @@ stock gamewe_log_player_event(client, const verb[], const player_event[])
 	get_user_authid(client, authid, charsmax(authid))
 	get_user_team(client, team, charsmax(team))
 	log_message("^"%s<%d><%s><%s>^" %s ^"%s^"", name, get_user_userid(client), authid, team, verb, player_event)
+}
+
+// "Name<userid><authid><team>" requested "<query>" (value "0"): asks the collector
+stock gamewe_log_player_request(client, const query[])
+{
+	if (!is_user_connected(client)) {
+		return
+	}
+	new name[MAX_NAME_LENGTH], authid[MAX_AUTHID_LENGTH], team[16]
+	get_user_name(client, name, charsmax(name))
+	get_user_authid(client, authid, charsmax(authid))
+	get_user_team(client, team, charsmax(team))
+	log_message("^"%s<%d><%s><%s>^" requested ^"%s^" (value ^"0^")", name, get_user_userid(client), authid, team, query)
 }
 
 
@@ -362,16 +385,69 @@ stock gamewe_read_recipients_message(players[GAMEWE_MAX_RECIPIENTS], &count, &fl
 	gamewe_rest_of(args, pos, message, len)
 }
 
-stock gamewe_get_prefix(prefix[], len)
+// Color tags of the message prefix. Counter-Strike has the default color
+// (^1), the team color (^3) and green (^4); other colors become the team
+// color or green, colors the game cannot show are removed. Without colors
+// (other mods) every tag is removed.
+stock const gamewe_color_tag_names[][] = {
+	"{default}", "{teamcolor}", "{team}", "{green}", "{lightgreen}", "{olive}",
+	"{red}", "{lightred}", "{darkred}", "{blue}", "{lightblue}", "{grey}",
+	"{gray}", "{yellow}", "{orange}", "{purple}", "{lime}"
+}
+stock const gamewe_color_tag_codes[][] = {
+	"^1", "^3", "^3", "^4", "^4", "^4",
+	"^3", "^3", "^3", "^3", "^3", "^3",
+	"^3", "", "", "", "^4"
+}
+
+stock gamewe_color_tags(text[], len, bool:colors)
+{
+	if (contain(text, "{") == -1) {
+		return
+	}
+	for (new i = 0; i < sizeof(gamewe_color_tag_names); i++) {
+		replace_string(text, len, gamewe_color_tag_names[i], colors ? gamewe_color_tag_codes[i] : "", false)
+	}
+}
+
+// the message prefix; colors: color tags become CS color codes, otherwise
+// all color tags are removed
+stock gamewe_get_prefix(prefix[], len, bool:colors = false)
 {
 	get_pcvar_string(g_gamewe_message_prefix, prefix, len)
 	trim(prefix)
+	gamewe_color_tags(prefix, len, colors)
+	if (colors) {
+		replace_string(prefix, len, "x01", "^1")
+		replace_string(prefix, len, "x03", "^3")
+		replace_string(prefix, len, "x04", "^4")
+	}
+	gamewe_remove_color_tags(prefix, len)
+}
+
+// The collector starts its chat lines with [gameWE]; with a message prefix
+// set, the tag is removed and the mod's chat puts the prefix in front.
+stock gamewe_strip_chat_tag(message[], len)
+{
+	new prefix[GAMEWE_MAX_PREFIX]
+	gamewe_get_prefix(prefix, charsmax(prefix))
+	new tag_length = strlen(GAMEWE_CHAT_TAG)
+	if (prefix[0] == EOS || !equal(message, GAMEWE_CHAT_TAG, tag_length)) {
+		return
+	}
+	new start = tag_length
+	while (message[start] == ' ') {
+		start++
+	}
+	new rest[GAMEWE_MAX_CHAT]
+	copy(rest, charsmax(rest), message[start])
+	copy(message, len, rest)
 }
 
 // default chat for mods without colors
 stock gamewe_plain_chat(player, const message[])
 {
-	new prefix[64]
+	new prefix[GAMEWE_MAX_PREFIX]
 	gamewe_get_prefix(prefix, charsmax(prefix))
 	if (prefix[0] != EOS) {
 		client_print(player, print_chat, "%s %s", prefix, message)
@@ -418,6 +494,7 @@ stock gamewe_psay(bool:green)
 	if (message[0] == EOS) {
 		return
 	}
+	gamewe_strip_chat_tag(message, charsmax(message))
 	for (new i = 0; i < count; i++) {
 		gamewe_mod_chat(players[i], message, colored, green)
 	}
@@ -593,6 +670,31 @@ public gamewe_cmd_block_values(id, level, cid)
 	return PLUGIN_HANDLED
 }
 
+// "<userid> <hideranking>": the collector tells the player's ranking state,
+// after !hideranking / !settings or when the settings menu asked for it
+public gamewe_cmd_hidestate(id, level, cid)
+{
+	new args[GAMEWE_MAX_ARGS], token[16]
+	read_args(args, charsmax(args))
+	new pos = 0
+	gamewe_next_token(args, pos, token, charsmax(token))
+	new player = gamewe_player_of_userid(token)
+	if (player <= 0) {
+		return PLUGIN_HANDLED
+	}
+	gamewe_next_token(args, pos, token, charsmax(token))
+	new hide_state = (is_str_num(token) && strlen(token) == 1) ? str_to_num(token) : GAMEWE_HIDERANKING_UNKNOWN
+	if (hide_state > 3) {
+		hide_state = GAMEWE_HIDERANKING_UNKNOWN
+	}
+	g_gamewe_hideranking[player] = hide_state
+	if (g_gamewe_hideranking_wait[player]) {
+		g_gamewe_hideranking_wait[player] = false
+		menu_display(player, g_gamewe_menu_settings, 0)
+	}
+	return PLUGIN_HANDLED
+}
+
 public gamewe_cmd_prefix_clear(id, level, cid)
 {
 	set_pcvar_string(g_gamewe_message_prefix, "")
@@ -607,6 +709,9 @@ public gamewe_cmd_prefix_clear(id, level, cid)
 public client_putinserver(id)
 {
 	g_gamewe_last_trigger[id] = 0.0
+	g_gamewe_hideranking[id] = GAMEWE_HIDERANKING_UNKNOWN
+	g_gamewe_hideranking_wait[id] = false
+	g_gamewe_hideranking_asked[id] = 0.0
 #if defined GAMEWE_DAMAGE_DISPLAY
 	gamewe_load_player_settings(id)
 #endif
@@ -634,7 +739,7 @@ public gamewe_client_say(client)
 	}
 	for (new i = 0; i < sizeof(gamewe_settings_commands); i++) {
 		if (equali(said, gamewe_settings_commands[i])) {
-			gamewe_display_menu(client, g_gamewe_menu_settings)
+			gamewe_display_settings_menu(client)
 			return PLUGIN_HANDLED
 		}
 	}
@@ -659,7 +764,7 @@ public gamewe_client_say(client)
 public gamewe_client_settings(client)
 {
 	if (client >= 1 && client <= MaxClients && is_user_connected(client)) {
-		gamewe_display_menu(client, g_gamewe_menu_settings)
+		gamewe_display_settings_menu(client)
 	}
 	return PLUGIN_HANDLED
 }
@@ -806,11 +911,12 @@ stock gamewe_build_menus()
 	menu_additem(g_gamewe_menu_main, "Display Help",           "/help")
 #endif
 
-	// the collector toggles the ranking setting and answers the player with psay;
-	// the display settings are kept by the plugin and show their current value
+	// one ranking entry: it hides or shows the player, depending on the state
+	// the collector sent last (gamewe_hidestate), and switches while the state
+	// is not known; the collector answers with psay and the new state. The
+	// display settings are kept by the plugin and show their current value.
 	g_gamewe_menu_settings = menu_create("gameWE - Settings", "gamewe_menu_command_handle")
-	menu_additem(g_gamewe_menu_settings, "Hide me in the ranking", "/gamewe_hideranking 1")
-	menu_additem(g_gamewe_menu_settings, "Show me in the ranking", "/gamewe_hideranking 0")
+	menu_additem(g_gamewe_menu_settings, "Ranking", "#ranking", 0, menu_makecallback("gamewe_menu_ranking_callback"))
 #if defined GAMEWE_DAMAGE_DISPLAY
 	menu_additem(g_gamewe_menu_settings, "Damage display", "#damage_display", 0, menu_makecallback("gamewe_menu_settings_callback"))
 #endif
@@ -824,6 +930,39 @@ stock gamewe_display_menu(client, menu)
 	}
 }
 
+// the settings menu; without the ranking state yet the collector is asked
+// for it (at most every 5 seconds, so the menu cannot flood the collector)
+// and the menu is shown again when gamewe_hidestate arrives
+stock gamewe_display_settings_menu(client)
+{
+	if (!is_user_connected(client) || is_user_bot(client)) {
+		return
+	}
+	new Float:now = get_gametime()
+	new Float:asked = g_gamewe_hideranking_asked[client]
+	if (g_gamewe_hideranking[client] == GAMEWE_HIDERANKING_UNKNOWN && (asked <= 0.0 || (now - asked) >= 5.0 || now < asked)) {
+		g_gamewe_hideranking_asked[client] = now
+		g_gamewe_hideranking_wait[client] = true
+		gamewe_log_player_request(client, "hideranking")
+	}
+	menu_display(client, g_gamewe_menu_settings, 0)
+}
+
+// draws the ranking entry for the player's current state
+public gamewe_menu_ranking_callback(id, menu, item)
+{
+	switch (g_gamewe_hideranking[id]) {
+		case 0: menu_item_setname(menu, item, "Hide me in the ranking")
+		case 3: menu_item_setname(menu, item, "Show me in the ranking")
+		case GAMEWE_HIDERANKING_UNKNOWN: menu_item_setname(menu, item, "Hide or show me in the ranking")
+		default: {
+			menu_item_setname(menu, item, "Hidden from the ranking (only an admin can change it)")
+			return ITEM_DISABLED
+		}
+	}
+	return ITEM_ENABLED
+}
+
 public gamewe_menu_main_handle(id, menu, item)
 {
 	if (item < 0) {
@@ -833,7 +972,7 @@ public gamewe_menu_main_handle(id, menu, item)
 	menu_item_getinfo(menu, item, access, command, charsmax(command), name, charsmax(name), callback)
 
 	if (equal(command, "#settings")) {
-		gamewe_display_menu(id, g_gamewe_menu_settings)
+		gamewe_display_settings_menu(id)
 	} else if (command[0] == '/') {
 		gamewe_log_player_event(id, "say", command)
 	}
@@ -843,12 +982,25 @@ public gamewe_menu_main_handle(id, menu, item)
 public gamewe_menu_command_handle(id, menu, item)
 {
 	if (item < 0) {
+		// closed by the player: do not open it again when the state arrives
+		if (item == MENU_EXIT && id >= 1 && id <= MaxClients) {
+			g_gamewe_hideranking_wait[id] = false
+		}
 		return PLUGIN_CONTINUE
 	}
 	new command[48], name[2], access, callback
 	menu_item_getinfo(menu, item, access, command, charsmax(command), name, charsmax(name), callback)
 	if (command[0] == '/') {
 		gamewe_log_player_event(id, "say", command)
+	}
+	if (equal(command, "#ranking")) {
+		switch (g_gamewe_hideranking[id]) {
+			case 0: gamewe_log_player_event(id, "say", "/gamewe_hideranking 1")
+			case 3: gamewe_log_player_event(id, "say", "/gamewe_hideranking 0")
+			case GAMEWE_HIDERANKING_UNKNOWN: gamewe_log_player_event(id, "say", "/gamewe_hideranking")
+		}
+		// the collector answers with the new state: show the menu with it
+		g_gamewe_hideranking_wait[id] = true
 	}
 #if defined GAMEWE_DAMAGE_DISPLAY
 	if (equal(command, "#damage_display") && get_pcvar_num(g_gamewe_damage_display_allow) == 1) {

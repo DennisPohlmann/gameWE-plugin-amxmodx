@@ -35,8 +35,16 @@ Counter-Strike and Day of Defeat get the full menu, the other games a short one
 
 `settings` or `gamewe_settings` in chat, or `amx_gamewe_settings` in the console, opens the
 settings menu. The plugin hides `settings` and `gamewe_settings` and does not log them, so
-the collector does not answer them as well. This is the only exception to the rule above. The menu has "Hide me in the ranking"
-(sends `/gamewe_hideranking 1`) and "Show me in the ranking" (`/gamewe_hideranking 0`).
+the collector does not answer them as well. This is the only exception to the rule above. The menu has one ranking entry that fits the player's current state: "Hide me in
+the ranking" (sends `/gamewe_hideranking 1`) when the player is shown, "Show me in
+the ranking" (`/gamewe_hideranking 0`) when the player hid themselves, and a
+disabled "Hidden from the ranking" when an admin or a ban hid the player. The
+collector answers in chat and with the new state, and the menu opens again with
+the switched entry. The plugin has no database: it gets the state from the
+collector (`gamewe_amx_hidestate`, asked for with `requested "hideranking"` when
+the menu opens the first time). As long as no state has arrived (a collector
+without this command), the entry is "Hide or show me in the ranking" and switches
+(`/gamewe_hideranking`).
 
 In Counter-Strike, Day of Defeat and Team Fortress Classic the settings menu also
 has "Damage display" with the player's current value: server default, off, menu or

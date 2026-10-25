@@ -13,7 +13,7 @@ are clamped.
 
 | Cvar | Default | Meaning |
 |------|---------|---------|
-| `gamewe_message_prefix` | | Text put in front of every gameWE chat message. |
+| `gamewe_message_prefix` | | Text put in front of every gameWE chat message, also in place of the `[gameWE]` of the collector's answers; up to 63 characters, [color tags](#color-tags) allowed, e.g. `"{lightgreen}[MyServer]{default}"`. Empty: the plugin's messages have no prefix and the collector's keep `[gameWE]`. |
 | `gamewe_chat_cooldown` | `1.0` | Seconds between two logged `/` commands of one player, so nobody can flood the collector, `0`-`30`. `0` turns it off. Commands in between are hidden but not logged. |
 | `gamewe_log_damage` | `1` | Counter-Strike: log an `attacked` line for every bullet hit (`0` off, `1` on). |
 | `gamewe_damage_display` | `0` | Counter-Strike, Day of Defeat, Team Fortress Classic: default for players: damage summary on death (`0` off, `1` menu, `2` chat). Each player can override it in the settings menu. |
@@ -37,6 +37,24 @@ the plugin starts. Players with a LAN or pending id (`STEAM_ID_LAN`, ...) share
 that id, so their choice is not saved and lasts until the next map. The message
 prefix, the chat cooldown, damage logging and the blocked commands stay server
 settings.
+
+## Color tags
+
+Counter-Strike shows three chat colors: the default color, the team color and
+green. The prefix is green unless a tag changes it. Upper and lower case do not
+matter.
+
+| Tag | Counter-Strike |
+|-----|----------------|
+| `{default}` | default color |
+| `{green}`, `{lightgreen}`, `{olive}`, `{lime}` | green |
+| `{teamcolor}`, `{team}`, `{red}`, `{lightred}`, `{darkred}`, `{blue}`, `{lightblue}`, `{grey}`, `{gray}` | team color |
+| `{yellow}`, `{orange}`, `{purple}` | removed |
+
+The gameME tags `x01`, `x03` and `x04` work as well. Day of Defeat, Team
+Fortress Classic, Natural Selection and Half-Life have no chat colors: the plugin
+removes all tags there. The cvar has the same name as in the SourceMod plugin,
+so one `gamewe_message_prefix` line works for both.
 
 ## Server commands
 

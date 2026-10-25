@@ -268,8 +268,8 @@ stock gamewe_mod_chat(player, const message[], colored, bool:green)
 		gamewe_remove_color_tags(text, charsmax(text))
 	}
 
-	new prefix[64]
-	gamewe_get_prefix(prefix, charsmax(prefix))
+	new prefix[GAMEWE_MAX_PREFIX]
+	gamewe_get_prefix(prefix, charsmax(prefix), true)
 	if (prefix[0] != EOS) {
 		client_print_color(player, sender, "^4%s^1 %s", prefix, text)
 	} else {
