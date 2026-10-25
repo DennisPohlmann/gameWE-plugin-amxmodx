@@ -50,7 +50,7 @@ public plugin_init()
 	gamewe_xstats_init()
 
 	g_gamewe_log_damage = create_cvar("gamewe_log_damage", "1", FCVAR_NONE,
-		"Log an ^"attacked^" line for every bullet hit", true, 0.0, true, 1.0)
+		"Log an ^"attacked^" line for every bullet hit (0 = off, 1 = on)", true, 0.0, true, 1.0)
 
 	register_event("DeathMsg", "gamewe_cs_death", "a", "1>0")
 	register_event("Damage", "gamewe_cs_damage", "b", "2!0", "3=0", "4!0")

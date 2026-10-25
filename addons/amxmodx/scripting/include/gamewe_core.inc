@@ -137,7 +137,7 @@ stock gamewe_core_init(const mod_name[])
 	g_gamewe_message_prefix = create_cvar("gamewe_message_prefix", "", FCVAR_NONE,
 		"Text put in front of every gameWE chat message")
 	g_gamewe_chat_cooldown = create_cvar("gamewe_chat_cooldown", "1.0", FCVAR_NONE,
-		"Seconds a player has to wait between two logged gameWE chat commands (0 = off)", true, 0.0, true, 30.0)
+		"Seconds a player has to wait between two logged gameWE chat commands (0-30, 0 = off)", true, 0.0, true, 30.0)
 #if defined GAMEWE_DAMAGE_DISPLAY
 	g_gamewe_damage_display = create_cvar("gamewe_damage_display", "0", FCVAR_NONE,
 		"Default for players: damage summary on death (0 = off, 1 = menu, 2 = chat); players can change it in the gameWE settings menu", true, 0.0, true, 2.0)

@@ -3,15 +3,19 @@
 On the first start the plugin writes `addons/amxmodx/configs/plugins/gamewe.cfg`
 with all cvars and their defaults. Change the values there; they are read on
 every map change. New cvars of a later version are added to the file
-automatically.
+automatically, but the comments of lines that are already there are not
+rewritten: the allowed range (`Minimum`/`Maximum`) of a cvar only shows up
+in a file written by a version that has it, so delete the file once after an
+update to get the current descriptions and ranges. Values outside the range
+are clamped.
 
 ## Cvars
 
 | Cvar | Default | Meaning |
 |------|---------|---------|
 | `gamewe_message_prefix` | | Text put in front of every gameWE chat message. |
-| `gamewe_chat_cooldown` | `1.0` | Seconds between two logged `/` commands of one player, so nobody can flood the collector. `0` turns it off. Commands in between are hidden but not logged. |
-| `gamewe_log_damage` | `1` | Counter-Strike: log an `attacked` line for every bullet hit. |
+| `gamewe_chat_cooldown` | `1.0` | Seconds between two logged `/` commands of one player, so nobody can flood the collector, `0`-`30`. `0` turns it off. Commands in between are hidden but not logged. |
+| `gamewe_log_damage` | `1` | Counter-Strike: log an `attacked` line for every bullet hit (`0` off, `1` on). |
 | `gamewe_damage_display` | `0` | Counter-Strike, Day of Defeat, Team Fortress Classic: default for players: damage summary on death (`0` off, `1` menu, `2` chat). Each player can override it in the settings menu. |
 | `gamewe_damage_display_allow` | `1` | `0` switches the damage display off for everyone; players cannot enable it then. |
 | `gamewe_plugin_version` | | Read only, the plugin version. |
