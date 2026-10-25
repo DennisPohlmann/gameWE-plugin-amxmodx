@@ -16,8 +16,11 @@
  *
  * Define GAMEWE_DAMAGE_DISPLAY for mods with damage data (csx, dodx, tfcx,
  * see gamewe_xstats.inc): adds the cvars gamewe_damage_display(_allow) and
- * the per-player "Damage display" setting, saved in the nVault
- * "gamewe_settings".
+ * the per-player "Damage display" setting.
+ *
+ * Every mod keeps the players' own settings in the nVault "gamewe_settings":
+ * console and chat events (gamewe_display, gamewe_chat), auto commands
+ * (gamewe_auto) and the language (gamewe_lang, include gamewe_lang.inc).
  *
  * Fork of the gameME Plugin 2.4 for AMX Mod X
  * (https://github.com/gamemedev/plugin-amxmodx),
@@ -52,9 +55,7 @@
 #include <amxmodx>
 #include <amxmisc>
 #include <celltrie>
-#if defined GAMEWE_DAMAGE_DISPLAY
-	#include <nvault>
-#endif
+#include <nvault>
 
 // written by "make build" from the git tag or the VERSION file
 #tryinclude <gamewe_version>
@@ -73,12 +74,12 @@
 
 // chat commands answered by the collector, also blocked with "/" and "!" in front
 stock const gamewe_default_blocked_commands[][] = {
-	"rank", "skill", "points", "place", "session", "sdata", "kpd", "kdratio", "kdeath",
-	"next", "load", "status", "top20", "top10", "top5", "maps", "map_stats", "clans",
+	"rank", "skill", "points", "place", "session", "sdata", "session_data", "kpd", "kdratio", "kdeath",
+	"next", "load", "status", "servers", "top20", "top10", "top5", "maps", "map_stats", "clans",
 	"cheaters", "statsme", "weapons", "weapon", "action", "actions", "accuracy",
-	"targets", "target", "kills", "kill", "player_kills", "cmds", "commands", "help",
+	"targets", "target", "kills", "kill", "player_kills", "cmd", "cmds", "commands", "help",
 	"gstats", "global_stats", "gamewe", "gamewe_menu", "gamewe_display 0", "gamewe_display 1",
-	"gamewe_atb 0", "gamewe_atb 1", "gamewe_hideranking", "gamewe_reset",
+	"gamewe_atb 0", "gamewe_atb 1", "gamewe_hideranking", "gamewe_reset", "gamewe_reset 0", "gamewe_reset 1",
 	"gamewe_chat 0", "gamewe_chat 1",
 	"hideranking", "hideranking 0", "hideranking 1", "hideranking on", "hideranking off",
 	"hideranking hide", "hideranking show",
@@ -87,7 +88,7 @@ stock const gamewe_default_blocked_commands[][] = {
 	"gameme_hideranking 0", "gameme_hideranking 1", "gameme_hideranking on", "gameme_hideranking off",
 	"gameme_hideranking hide", "gameme_hideranking show",
 	"gameme", "gameme_menu", "gameme_display 0", "gameme_display 1",
-	"gameme_atb 0", "gameme_atb 1", "gameme_hideranking", "gameme_reset",
+	"gameme_atb 0", "gameme_atb 1", "gameme_hideranking", "gameme_reset", "gameme_reset 0", "gameme_reset 1",
 	"gameme_chat 0", "gameme_chat 1"
 }
 
@@ -117,17 +118,42 @@ new g_gamewe_hideranking[MAX_PLAYERS + 1] = { GAMEWE_HIDERANKING_UNKNOWN, ... }
 new bool:g_gamewe_hideranking_wait[MAX_PLAYERS + 1]
 new Float:g_gamewe_hideranking_asked[MAX_PLAYERS + 1] // last request, at most one per 5 seconds
 
-#if defined GAMEWE_DAMAGE_DISPLAY
 // per-player settings: -1 = server default (cvar), otherwise the player's own choice
 #define GAMEWE_SETTING_DEFAULT   -1
 #define GAMEWE_SETTINGS_VAULT    "gamewe_settings"
 #define GAMEWE_SETTINGS_MAX_AGE  (180 * 86400)  // settings of players not seen for 180 days are removed
 
+new g_gamewe_settings_vault = INVALID_HANDLE
+
+// gamewe_display / gamewe_chat: console and chat events of the collector, 1 = on (default)
+new g_gamewe_console_events[MAX_PLAYERS + 1] = { 1, ... }
+new g_gamewe_global_chat[MAX_PLAYERS + 1] = { 1, ... }
+
+// gamewe_auto: the command sent for the player at round start, round end and death
+#define GAMEWE_AUTO_START   0
+#define GAMEWE_AUTO_END     1
+#define GAMEWE_AUTO_KILL    2
+#define GAMEWE_AUTO_EVENTS  3
+#define GAMEWE_AUTO_LENGTH  16
+// slot of a player's command: GAMEWE_AUTO_SLOT(id, event)
+#define GAMEWE_AUTO_SLOT(%1,%2) ((%1) * GAMEWE_AUTO_EVENTS + (%2))
+new g_gamewe_auto[(MAX_PLAYERS + 1) * GAMEWE_AUTO_EVENTS][GAMEWE_AUTO_LENGTH]
+new Float:g_gamewe_last_auto[MAX_PLAYERS + 1][GAMEWE_AUTO_EVENTS]
+
+// the stats commands of the collector that may be auto commands, never free text
+stock const gamewe_auto_commands[][] = {
+	"rank", "skill", "points", "kpd", "kdratio", "session", "sdata", "next",
+	"top5", "top10", "top20", "statsme"
+}
+stock const gamewe_auto_types[GAMEWE_AUTO_EVENTS][] = { "start", "end", "kill" }
+
+#if defined GAMEWE_DAMAGE_DISPLAY
 new g_gamewe_damage_display
 new g_gamewe_damage_display_allow
-new g_gamewe_settings_vault = INVALID_HANDLE
 new g_gamewe_player_damage_display[MAX_PLAYERS + 1] = { GAMEWE_SETTING_DEFAULT, ... }
 #endif
+
+#include <gamewe_lang>
 
 stock const GAMEWE_MENU_KEYS = MENU_KEY_0|MENU_KEY_1|MENU_KEY_2|MENU_KEY_3|MENU_KEY_4|MENU_KEY_5|MENU_KEY_6|MENU_KEY_7|MENU_KEY_8|MENU_KEY_9
 #define GAMEWE_MENU_TITLE "gameWE Display Menu"
@@ -152,6 +178,7 @@ stock gamewe_core_init(const mod_name[])
 		"Default for players: damage summary on death (0 = off, 1 = menu, 2 = chat); players can change it in the gameWE settings menu", true, 0.0, true, 2.0)
 	g_gamewe_damage_display_allow = create_cvar("gamewe_damage_display_allow", "1", FCVAR_NONE,
 		"Allow the damage display at all (0 = off for everyone, players cannot enable it)", true, 0.0, true, 1.0)
+#endif
 
 	g_gamewe_settings_vault = nvault_open(GAMEWE_SETTINGS_VAULT)
 	if (g_gamewe_settings_vault == INVALID_HANDLE) {
@@ -159,7 +186,6 @@ stock gamewe_core_init(const mod_name[])
 	} else {
 		nvault_prune(g_gamewe_settings_vault, 0, get_systime() - GAMEWE_SETTINGS_MAX_AGE)
 	}
-#endif
 	AutoExecConfig(true, "gamewe")
 
 	g_gamewe_blocked_commands = TrieCreate()
@@ -182,6 +208,8 @@ stock gamewe_core_init(const mod_name[])
 	gamewe_register_srvcmd("browse", "gamewe_cmd_browse", "<userid> <url> - open a website in the MOTD window")
 	gamewe_register_srvcmd("swap",   "gamewe_cmd_swap",   "<userid> - move a player to the opposite team")
 	gamewe_register_srvcmd("hidestate", "gamewe_cmd_hidestate", "<userid> <hideranking> - ranking state of a player for the settings menu")
+	gamewe_register_srvcmd("console_event", "gamewe_cmd_console_event", "<userid[,userid...]> <message> - console line for players with gamewe_display 1")
+	gamewe_register_srvcmd("chat_event", "gamewe_cmd_chat_event", "<userid[,userid...]> <message> - chat line for players with gamewe_chat 1")
 	register_srvcmd("gamewe_block_commands_values", "gamewe_cmd_block_values", -1, "<command ...|clear> - more chat commands that are silent with /")
 	register_srvcmd("gameme_block_commands_values", "gamewe_cmd_block_values")
 	register_srvcmd("gamewe_message_prefix_clear", "gamewe_cmd_prefix_clear", -1, "- empty gamewe_message_prefix")
@@ -190,6 +218,11 @@ stock gamewe_core_init(const mod_name[])
 	register_clcmd("say_team", "gamewe_client_say")
 	register_clcmd("amx_gamewe_settings", "gamewe_client_settings", -1, "- open the gameWE settings menu")
 	register_menucmd(register_menuid(GAMEWE_MENU_TITLE), GAMEWE_MENU_KEYS, "gamewe_display_menu_handle")
+
+	// gamewe_auto: round start and end as the games log them, deaths of everybody
+	register_logevent("gamewe_auto_round_start", 2, "1=Round_Start")
+	register_logevent("gamewe_auto_round_end", 2, "1=Round_End")
+	register_event("DeathMsg", "gamewe_auto_death", "a")
 
 	gamewe_build_menus()
 }
@@ -235,6 +268,21 @@ stock gamewe_log_player_request(client, const query[])
 	get_user_authid(client, authid, charsmax(authid))
 	get_user_team(client, team, charsmax(team))
 	log_message("^"%s<%d><%s><%s>^" requested ^"%s^" (value ^"0^")", name, get_user_userid(client), authid, team, query)
+}
+
+
+// "Name<userid><authid><team>" setup "<name>" (value "<value>"): a setting
+// for the collector; name and value are fixed strings of the plugin
+stock gamewe_log_player_setup(client, const setting[], const value[])
+{
+	if (!is_user_connected(client)) {
+		return
+	}
+	new name[MAX_NAME_LENGTH], authid[MAX_AUTHID_LENGTH], team[16]
+	get_user_name(client, name, charsmax(name))
+	get_user_authid(client, authid, charsmax(authid))
+	get_user_team(client, team, charsmax(team))
+	log_message("^"%s<%d><%s><%s>^" setup ^"%s^" (value ^"%s^")", name, get_user_userid(client), authid, team, setting, value)
 }
 
 
@@ -695,6 +743,44 @@ public gamewe_cmd_hidestate(id, level, cid)
 	return PLUGIN_HANDLED
 }
 
+// "<userid[,userid...]> <message>": the collector's points of kills and
+// actions, for the listed players whose console events are on
+public gamewe_cmd_console_event(id, level, cid)
+{
+	new players[GAMEWE_MAX_RECIPIENTS], count, flag
+	new message[GAMEWE_MAX_CHAT]
+	gamewe_read_recipients_message(players, count, flag, message, charsmax(message), false)
+	gamewe_remove_color_tags(message, charsmax(message))
+	if (message[0] == EOS) {
+		return PLUGIN_HANDLED
+	}
+	for (new i = 0; i < count; i++) {
+		if (g_gamewe_console_events[players[i]] == 1) {
+			client_print(players[i], print_console, "%s %s", GAMEWE_CHAT_TAG, message)
+		}
+	}
+	return PLUGIN_HANDLED
+}
+
+// "<userid[,userid...]> <message>": the collector's announcements of
+// actions with points, for the listed players whose global chat is on
+public gamewe_cmd_chat_event(id, level, cid)
+{
+	new players[GAMEWE_MAX_RECIPIENTS], count, flag
+	new message[GAMEWE_MAX_CHAT]
+	gamewe_read_recipients_message(players, count, flag, message, charsmax(message), false)
+	if (message[0] == EOS) {
+		return PLUGIN_HANDLED
+	}
+	gamewe_strip_chat_tag(message, charsmax(message))
+	for (new i = 0; i < count; i++) {
+		if (g_gamewe_global_chat[players[i]] == 1) {
+			gamewe_mod_chat(players[i], message, 0, false)
+		}
+	}
+	return PLUGIN_HANDLED
+}
+
 public gamewe_cmd_prefix_clear(id, level, cid)
 {
 	set_pcvar_string(g_gamewe_message_prefix, "")
@@ -712,9 +798,11 @@ public client_putinserver(id)
 	g_gamewe_hideranking[id] = GAMEWE_HIDERANKING_UNKNOWN
 	g_gamewe_hideranking_wait[id] = false
 	g_gamewe_hideranking_asked[id] = 0.0
-#if defined GAMEWE_DAMAGE_DISPLAY
+	for (new i = 0; i < GAMEWE_AUTO_EVENTS; i++) {
+		g_gamewe_last_auto[id][i] = 0.0
+	}
 	gamewe_load_player_settings(id)
-#endif
+	gamewe_apply_language(id)
 }
 
 public gamewe_client_say(client)
@@ -743,6 +831,10 @@ public gamewe_client_say(client)
 			return PLUGIN_HANDLED
 		}
 	}
+	if (gamewe_player_setting(client, said)) {
+		// kept by the plugin; "/..." is silent, "!..." stays in chat
+		return (said[0] == '/') ? PLUGIN_HANDLED : PLUGIN_CONTINUE
+	}
 
 	// "/" commands are silent: hidden from chat and logged by the plugin.
 	// "!" commands and plain words stay visible, the game logs them itself.
@@ -770,7 +862,6 @@ public gamewe_client_settings(client)
 }
 
 
-#if defined GAMEWE_DAMAGE_DISPLAY
 /*
  * Per-player settings, saved in the nVault "gamewe_settings" as
  * "<authid>#<setting>". LAN, pending and bot ids are shared by several
@@ -780,6 +871,8 @@ public gamewe_client_settings(client)
 public client_authorized(id, const authid[])
 {
 	gamewe_load_player_settings(id)
+	// already in game when the Steam id arrives late (else client_putinserver)
+	gamewe_apply_language(id)
 }
 
 public plugin_end()
@@ -804,25 +897,73 @@ stock bool:gamewe_settings_key(id, const setting[], key[], len)
 	return true
 }
 
+// the stored value of a setting, false if there is none
+stock bool:gamewe_lookup_setting(id, const setting[], value[], len)
+{
+	new key[MAX_AUTHID_LENGTH + 32], timestamp
+	value[0] = EOS
+	if (!gamewe_settings_key(id, setting, key, charsmax(key))) {
+		return false
+	}
+	if (!nvault_lookup(g_gamewe_settings_vault, key, value, len, timestamp)) {
+		return false
+	}
+	// keeps the entry from being pruned
+	nvault_touch(g_gamewe_settings_vault, key)
+	return true
+}
+
 stock gamewe_load_player_settings(id)
 {
 	if (id < 1 || id > MaxClients) {
 		return
 	}
-	g_gamewe_player_damage_display[id] = GAMEWE_SETTING_DEFAULT
-
-	new key[MAX_AUTHID_LENGTH + 32], value[8], timestamp
-	if (!gamewe_settings_key(id, "damage_display", key, charsmax(key))) {
-		return
+	g_gamewe_console_events[id] = 1
+	g_gamewe_global_chat[id] = 1
+	for (new i = 0; i < GAMEWE_AUTO_EVENTS; i++) {
+		g_gamewe_auto[GAMEWE_AUTO_SLOT(id, i)][0] = EOS
 	}
-	if (nvault_lookup(g_gamewe_settings_vault, key, value, charsmax(value), timestamp)) {
+	g_gamewe_lang[id] = GAMEWE_LANG_UNSET
+
+	new value[64]
+	if (gamewe_lookup_setting(id, "console_events", value, charsmax(value)) && equal(value, "0")) {
+		g_gamewe_console_events[id] = 0
+	}
+	if (gamewe_lookup_setting(id, "global_chat", value, charsmax(value)) && equal(value, "0")) {
+		g_gamewe_global_chat[id] = 0
+	}
+	// "start,end,kill"; only commands of gamewe_auto_commands are taken
+	if (gamewe_lookup_setting(id, "auto", value, charsmax(value))) {
+		new pos = 0
+		for (new i = 0; i < GAMEWE_AUTO_EVENTS; i++) {
+			new part[GAMEWE_AUTO_LENGTH], n = 0
+			while (value[pos] != EOS && value[pos] != ',') {
+				if (n < charsmax(part)) {
+					part[n++] = value[pos]
+				}
+				pos++
+			}
+			part[n] = EOS
+			if (value[pos] == ',') {
+				pos++
+			}
+			if (gamewe_auto_command_index(part) >= 0) {
+				copy(g_gamewe_auto[GAMEWE_AUTO_SLOT(id, i)], charsmax(g_gamewe_auto[]), part)
+			}
+		}
+	}
+	if (gamewe_lookup_setting(id, "lang", value, charsmax(value))) {
+		g_gamewe_lang[id] = gamewe_lang_index(value)
+	}
+#if defined GAMEWE_DAMAGE_DISPLAY
+	g_gamewe_player_damage_display[id] = GAMEWE_SETTING_DEFAULT
+	if (gamewe_lookup_setting(id, "damage_display", value, charsmax(value))) {
 		new setting = is_str_num(value) ? str_to_num(value) : GAMEWE_SETTING_DEFAULT
 		if (setting >= 0 && setting <= 2) {
 			g_gamewe_player_damage_display[id] = setting
-			// keeps the entry from being pruned
-			nvault_touch(g_gamewe_settings_vault, key)
 		}
 	}
+#endif
 }
 
 stock gamewe_save_player_setting(id, const setting[], value)
@@ -840,6 +981,272 @@ stock gamewe_save_player_setting(id, const setting[], value)
 	}
 }
 
+stock gamewe_save_player_string(id, const setting[], const value[])
+{
+	new key[MAX_AUTHID_LENGTH + 32]
+	if (!gamewe_settings_key(id, setting, key, charsmax(key))) {
+		return
+	}
+	if (value[0] == EOS) {
+		nvault_remove(g_gamewe_settings_vault, key)
+	} else {
+		nvault_set(g_gamewe_settings_vault, key, value)
+	}
+}
+
+stock gamewe_save_auto_commands(id)
+{
+	new value[64]
+	formatex(value, charsmax(value), "%s,%s,%s", g_gamewe_auto[GAMEWE_AUTO_SLOT(id, GAMEWE_AUTO_START)],
+		g_gamewe_auto[GAMEWE_AUTO_SLOT(id, GAMEWE_AUTO_END)], g_gamewe_auto[GAMEWE_AUTO_SLOT(id, GAMEWE_AUTO_KILL)])
+	if (equal(value, ",,")) {
+		value[0] = EOS
+	}
+	gamewe_save_player_string(id, "auto", value)
+}
+
+// index in gamewe_auto_commands, -1 if the command cannot be an auto command
+stock gamewe_auto_command_index(const command[])
+{
+	if (command[0] == EOS) {
+		return -1
+	}
+	for (new i = 0; i < sizeof(gamewe_auto_commands); i++) {
+		if (equali(command, gamewe_auto_commands[i])) {
+			return i
+		}
+	}
+	return -1
+}
+
+
+/*
+ * Settings the plugin keeps: gamewe_display, gamewe_chat, gamewe_auto and
+ * gamewe_lang (also gameme_*). Not logged, so the collector does not see them.
+ */
+
+// a chat line of the plugin in the player's language: the [gameWE] tag, or
+// the message prefix in its place
+stock gamewe_reply(id, const message[])
+{
+	new line[GAMEWE_MAX_CHAT]
+	formatex(line, charsmax(line), "%s %s", GAMEWE_CHAT_TAG, message)
+	gamewe_strip_chat_tag(line, charsmax(line))
+	gamewe_mod_chat(id, line, 0, false)
+}
+
+// a message of the table in the player's language with up to three string
+// arguments (the table's templates only hold %s)
+stock gamewe_reply_msg(id, msg, const a1[] = "", const a2[] = "", const a3[] = "")
+{
+	new template[GAMEWE_MAX_CHAT], message[GAMEWE_MAX_CHAT]
+	gamewe_msg(id, msg, template, charsmax(template))
+	formatex(message, charsmax(message), template, a1, a2, a3)
+	gamewe_reply(id, message)
+}
+
+// true if said is one of the settings commands
+stock bool:gamewe_player_setting(client, const said[])
+{
+	new command[64], argument[64], argument2[64]
+	new pos = 0
+	gamewe_next_token(said, pos, command, charsmax(command))
+	gamewe_next_token(said, pos, argument, charsmax(argument))
+	gamewe_next_token(said, pos, argument2, charsmax(argument2))
+
+	new start = (command[0] == '/' || command[0] == '!') ? 1 : 0
+	if (!equali(command[start], "gamewe_", 7) && !equali(command[start], "gameme_", 7)) {
+		return false
+	}
+	new name[16]
+	copy(name, charsmax(name), command[start + 7])
+	if (!equali(name, "display") && !equali(name, "chat") && !equali(name, "auto") && !equali(name, "lang")) {
+		return false
+	}
+	// every change writes the nVault (gamewe_lang also a log line): at most
+	// one per gamewe_chat_cooldown
+	new Float:now = get_gametime()
+	new Float:cooldown = get_pcvar_float(g_gamewe_chat_cooldown)
+	if (cooldown > 0.0 && g_gamewe_last_trigger[client] > 0.0 && (now - g_gamewe_last_trigger[client]) < cooldown && now >= g_gamewe_last_trigger[client]) {
+		return true
+	}
+	g_gamewe_last_trigger[client] = now
+
+	if (equali(name, "display")) {
+		gamewe_set_event_setting(client, false, argument)
+	} else if (equali(name, "chat")) {
+		gamewe_set_event_setting(client, true, argument)
+	} else if (equali(name, "auto")) {
+		gamewe_auto_command(client, argument, argument2)
+	} else {
+		gamewe_language_command(client, argument)
+	}
+	return true
+}
+
+// gamewe_display 0|1 (console events) or gamewe_chat 0|1 (global chat)
+stock gamewe_set_event_setting(id, bool:chat, const value[])
+{
+	new setting
+	if (equal(value, "1") || equali(value, "on")) {
+		setting = 1
+	} else if (equal(value, "0") || equali(value, "off")) {
+		setting = 0
+	} else {
+		if (chat) {
+			gamewe_reply_msg(id, GAMEWE_MSG_ONOFF_USAGE, "gamewe_chat", "gamewe_chat")
+		} else {
+			gamewe_reply_msg(id, GAMEWE_MSG_ONOFF_USAGE, "gamewe_display", "gamewe_display")
+		}
+		return
+	}
+	// stored only when off: on is the default
+	new stored[2]
+	if (setting == 0) {
+		copy(stored, charsmax(stored), "0")
+	}
+	if (chat) {
+		g_gamewe_global_chat[id] = setting
+		gamewe_save_player_string(id, "global_chat", stored)
+		gamewe_reply_msg(id, setting ? GAMEWE_MSG_CHAT_ON : GAMEWE_MSG_CHAT_OFF)
+	} else {
+		g_gamewe_console_events[id] = setting
+		gamewe_save_player_string(id, "console_events", stored)
+		gamewe_reply_msg(id, setting ? GAMEWE_MSG_DISPLAY_ON : GAMEWE_MSG_DISPLAY_OFF)
+	}
+}
+
+// gamewe_auto clear | gamewe_auto start|end|kill [<command>|clear] | gamewe_auto
+stock gamewe_auto_command(id, const type[], const command[])
+{
+	if (equali(type, "clear")) {
+		for (new i = 0; i < GAMEWE_AUTO_EVENTS; i++) {
+			g_gamewe_auto[GAMEWE_AUTO_SLOT(id, i)][0] = EOS
+		}
+		gamewe_save_auto_commands(id)
+		gamewe_reply_msg(id, GAMEWE_MSG_AUTO_CLEARED)
+		return
+	}
+	new auto_event = -1
+	for (new i = 0; i < GAMEWE_AUTO_EVENTS; i++) {
+		if (equali(type, gamewe_auto_types[i])) {
+			auto_event = i
+		}
+	}
+	if (auto_event < 0) {
+		new off[32], current[GAMEWE_AUTO_EVENTS][GAMEWE_AUTO_LENGTH]
+		gamewe_msg(id, GAMEWE_MSG_OFF, off, charsmax(off))
+		for (new i = 0; i < GAMEWE_AUTO_EVENTS; i++) {
+			if (g_gamewe_auto[GAMEWE_AUTO_SLOT(id, i)][0] != EOS) {
+				copy(current[i], charsmax(current[]), g_gamewe_auto[GAMEWE_AUTO_SLOT(id, i)])
+			} else {
+				copy(current[i], charsmax(current[]), off)
+			}
+		}
+		gamewe_reply_msg(id, GAMEWE_MSG_AUTO_LIST, current[GAMEWE_AUTO_START], current[GAMEWE_AUTO_END], current[GAMEWE_AUTO_KILL])
+		gamewe_reply_msg(id, GAMEWE_MSG_AUTO_USAGE)
+		return
+	}
+	new event_name[64]
+	gamewe_msg(id, GAMEWE_MSG_AUTO_START + auto_event, event_name, charsmax(event_name))
+	if (command[0] == EOS || equali(command, "clear")) {
+		g_gamewe_auto[GAMEWE_AUTO_SLOT(id, auto_event)][0] = EOS
+		gamewe_save_auto_commands(id)
+		gamewe_reply_msg(id, GAMEWE_MSG_AUTO_REMOVED, event_name)
+		return
+	}
+	new index = gamewe_auto_command_index(command)
+	if (index < 0) {
+		gamewe_reply_msg(id, GAMEWE_MSG_AUTO_UNKNOWN, command)
+		gamewe_reply_msg(id, GAMEWE_MSG_AUTO_USAGE)
+		return
+	}
+	copy(g_gamewe_auto[GAMEWE_AUTO_SLOT(id, auto_event)], charsmax(g_gamewe_auto[]), gamewe_auto_commands[index])
+	gamewe_save_auto_commands(id)
+	gamewe_reply_msg(id, GAMEWE_MSG_AUTO_SET, event_name, gamewe_auto_commands[index])
+}
+
+// gamewe_lang <code>: the language of the plugin's and the collector's messages
+stock gamewe_language_command(id, const code[])
+{
+	new index = gamewe_lang_index(code)
+	if (index < 0) {
+		gamewe_reply_msg(id, GAMEWE_MSG_LANG_USAGE)
+		return
+	}
+	g_gamewe_lang[id] = index
+	gamewe_save_player_string(id, "lang", gamewe_lang_codes[index])
+	gamewe_apply_language(id)
+	gamewe_reply_msg(id, GAMEWE_MSG_LANG_SET, gamewe_lang_codes[index])
+}
+
+// tells the collector the player's chosen language
+stock gamewe_apply_language(id)
+{
+	if (id >= 1 && id <= MaxClients && g_gamewe_lang[id] >= 0 && is_user_connected(id) && !is_user_bot(id)) {
+		gamewe_log_player_setup(id, "gamewe_lang", gamewe_lang_codes[g_gamewe_lang[id]])
+	}
+}
+
+// sends the auto command of the event for every player (only: just that one)
+stock gamewe_run_auto(auto_event, only = 0)
+{
+	new Float:now = get_gametime()
+	for (new id = 1; id <= MaxClients; id++) {
+		if ((only > 0 && id != only) || !is_user_connected(id) || is_user_bot(id) || is_user_hltv(id) || g_gamewe_auto[GAMEWE_AUTO_SLOT(id, auto_event)][0] == EOS) {
+			continue
+		}
+		new Float:last = g_gamewe_last_auto[id][auto_event]
+		if (last > 0.0 && now >= last && (now - last) < 2.0) {
+			continue
+		}
+		g_gamewe_last_auto[id][auto_event] = now
+		new Float:cooldown = get_pcvar_float(g_gamewe_chat_cooldown)
+		if (cooldown > 0.0 && g_gamewe_last_trigger[id] > 0.0 && (now - g_gamewe_last_trigger[id]) < cooldown && now >= g_gamewe_last_trigger[id]) {
+			continue
+		}
+		g_gamewe_last_trigger[id] = now
+		new command[GAMEWE_AUTO_LENGTH + 1]
+		formatex(command, charsmax(command), "/%s", g_gamewe_auto[GAMEWE_AUTO_SLOT(id, auto_event)])
+		gamewe_log_player_event(id, "say", command)
+	}
+}
+
+public gamewe_auto_round_start()
+{
+	gamewe_run_auto(GAMEWE_AUTO_START)
+}
+
+public gamewe_auto_round_end()
+{
+	gamewe_run_auto(GAMEWE_AUTO_END)
+}
+
+public gamewe_auto_death()
+{
+	new victim = read_data(2)
+	if (victim >= 1 && victim <= MaxClients) {
+		gamewe_run_auto(GAMEWE_AUTO_KILL, victim)
+	}
+}
+
+// draws "Console events" / "Global chat" with the player's current value
+public gamewe_menu_events_callback(id, menu, item)
+{
+	new command[16], name[2], access, callback
+	menu_item_getinfo(menu, item, access, command, charsmax(command), name, charsmax(name), callback)
+	new bool:chat = bool:equal(command, "#global_chat")
+	new value[32], text[64]
+	gamewe_msg(id, (chat ? g_gamewe_global_chat[id] : g_gamewe_console_events[id]) ? GAMEWE_MSG_ON : GAMEWE_MSG_OFF, value, charsmax(value))
+	new template[64]
+	gamewe_msg(id, chat ? GAMEWE_MSG_CHAT_ENTRY : GAMEWE_MSG_CONSOLE_ENTRY, template, charsmax(template))
+	formatex(text, charsmax(text), template, value)
+	menu_item_setname(menu, item, text)
+	return ITEM_ENABLED
+}
+
+
+#if defined GAMEWE_DAMAGE_DISPLAY
 // the player's damage display mode (0 = off, 1 = menu, 2 = chat): the player's
 // own choice, otherwise the server default gamewe_damage_display
 stock gamewe_get_damage_display(id)
@@ -917,6 +1324,8 @@ stock gamewe_build_menus()
 	// display settings are kept by the plugin and show their current value.
 	g_gamewe_menu_settings = menu_create("gameWE - Settings", "gamewe_menu_command_handle")
 	menu_additem(g_gamewe_menu_settings, "Ranking", "#ranking", 0, menu_makecallback("gamewe_menu_ranking_callback"))
+	menu_additem(g_gamewe_menu_settings, "Console events", "#console_events", 0, menu_makecallback("gamewe_menu_events_callback"))
+	menu_additem(g_gamewe_menu_settings, "Global chat", "#global_chat", 0, menu_makecallback("gamewe_menu_events_callback"))
 #if defined GAMEWE_DAMAGE_DISPLAY
 	menu_additem(g_gamewe_menu_settings, "Damage display", "#damage_display", 0, menu_makecallback("gamewe_menu_settings_callback"))
 #endif
@@ -951,15 +1360,18 @@ stock gamewe_display_settings_menu(client)
 // draws the ranking entry for the player's current state
 public gamewe_menu_ranking_callback(id, menu, item)
 {
+	new text[64]
 	switch (g_gamewe_hideranking[id]) {
-		case 0: menu_item_setname(menu, item, "Hide me in the ranking")
-		case 3: menu_item_setname(menu, item, "Show me in the ranking")
-		case GAMEWE_HIDERANKING_UNKNOWN: menu_item_setname(menu, item, "Hide or show me in the ranking")
+		case 0: gamewe_msg(id, GAMEWE_MSG_RANK_HIDE, text, charsmax(text))
+		case 3: gamewe_msg(id, GAMEWE_MSG_RANK_SHOW, text, charsmax(text))
+		case GAMEWE_HIDERANKING_UNKNOWN: gamewe_msg(id, GAMEWE_MSG_RANK_SWITCH, text, charsmax(text))
 		default: {
-			menu_item_setname(menu, item, "Hidden from the ranking (only an admin can change it)")
+			gamewe_msg(id, GAMEWE_MSG_RANK_LOCKED, text, charsmax(text))
+			menu_item_setname(menu, item, text)
 			return ITEM_DISABLED
 		}
 	}
+	menu_item_setname(menu, item, text)
 	return ITEM_ENABLED
 }
 
@@ -1001,6 +1413,16 @@ public gamewe_menu_command_handle(id, menu, item)
 		}
 		// the collector answers with the new state: show the menu with it
 		g_gamewe_hideranking_wait[id] = true
+	}
+	if (equal(command, "#console_events") || equal(command, "#global_chat")) {
+		new bool:chat = bool:equal(command, "#global_chat")
+		new on = chat ? g_gamewe_global_chat[id] : g_gamewe_console_events[id]
+		if (on) {
+			gamewe_set_event_setting(id, chat, "0")
+		} else {
+			gamewe_set_event_setting(id, chat, "1")
+		}
+		gamewe_display_menu(id, menu)
 	}
 #if defined GAMEWE_DAMAGE_DISPLAY
 	if (equal(command, "#damage_display") && get_pcvar_num(g_gamewe_damage_display_allow) == 1) {

@@ -18,6 +18,7 @@ The plugin writes standard HL log lines (`"Name<userid><authid><team>"`):
 "Name<2><STEAM_0:0:123><CT>" say "/rank"
 "Name<2><STEAM_0:0:123><CT>" selected "3"
 "Name<2><STEAM_0:0:123><CT>" requested "hideranking" (value "0")
+"Name<2><STEAM_0:0:123><CT>" setup "gamewe_lang" (value "de")
 ```
 
 - `weaponstats` lines are written when a player dies, disconnects or the round ends
@@ -26,6 +27,9 @@ The plugin writes standard HL log lines (`"Name<userid><authid><team>"`):
 - `requested "hideranking"` asks the collector for the player's ranking state when
   the settings menu opens and the state is not known yet; the collector answers
   with `gamewe_amx_hidestate`.
+- `setup "gamewe_lang"` is the player's language choice (`gamewe_lang`: `en`, `de`,
+  `ru`, `es`, `fr`, `pt`, `nl`, `dk`, `pl`), logged when the player chooses it and
+  when the player joins; the collector answers in that language.
 - Counter-Strike: the plugin replaces the kill and suicide lines of the game by the
   same lines with positions, so each kill is still logged once.
 
@@ -50,6 +54,8 @@ line (`2` above), with or without `#` in front. Lists are separated by commas
 | `gamewe_amx_msay <time> <userid> [handler] "<menu text>"` | Menu for `time` seconds (1-120, otherwise 15). Lines are separated by `\n` or `^n`. With `handler 1` the choice is logged as `selected "<1-9>"` or `selected "cancel"`. |
 | `gamewe_amx_browse <userid> "<url>"` | Opens a website in the MOTD window. Only `http://` and `https://` URLs. |
 | `gamewe_amx_swap <userid>` | Moves a player to the other team (Counter-Strike, Day of Defeat) and logs `joined team`. |
+| `gamewe_amx_console_event <userid[,userid...]> "<message>"` | A console line for the listed players whose console events are on (`gamewe_display`): the collector's points of kills and actions. |
+| `gamewe_amx_chat_event <userid[,userid...]> "<message>"` | A chat line (with the message prefix) for the listed players whose global chat is on (`gamewe_chat`): the collector's announcements of actions with points. |
 | `gamewe_amx_hidestate <userid> <hideranking>` | The player's ranking state for the settings menu: `0` shown, `1` hidden by an admin, `2` banned, `3` hidden by the player. Sent by the collector after `!hideranking` / `!settings` and for `requested "hideranking"`. |
 
 The collector starts every chat line of `psay` with `[gameWE]`. When

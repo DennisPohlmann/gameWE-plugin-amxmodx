@@ -30,9 +30,18 @@ it on". To forbid it completely, set `gamewe_damage_display_allow 0`; the menu
 then shows the entry as disabled. Natural Selection and Half-Life have no
 damage data, so their settings menu has no damage entry.
 
+Every player also chooses the collector's console events and global chat
+events (`gamewe_display 0|1`, `gamewe_chat 0|1`, on by default; the
+collector's `gamewe_console_events` / `gamewe_global_chat` decide whether
+there are any), auto commands (`gamewe_auto`) and the language (`gamewe_lang`),
+see [USAGE.md](USAGE.md#settings-the-plugin-keeps).
+
 The choices are saved in the nVault `addons/amxmodx/data/vault/gamewe_settings.vault`
-under `<SteamID>#damage_display` (value `0`/`1`/`2`; "server default" removes
-the entry). Entries of players who have not joined for 180 days are removed when
+(all games, so every plugin needs the `nvault` module) under
+`<SteamID>#damage_display` (value `0`/`1`/`2`; "server default" removes
+the entry), `<SteamID>#console_events` and `#global_chat` (`0` when off; on
+removes the entry), `<SteamID>#auto` (`<start>,<end>,<kill>`, each a command
+of the allowed list or empty) and `<SteamID>#lang` (the gamewe_lang code). Entries of players who have not joined for 180 days are removed when
 the plugin starts. Players with a LAN or pending id (`STEAM_ID_LAN`, ...) share
 that id, so their choice is not saved and lasts until the next map. The message
 prefix, the chat cooldown, damage logging and the blocked commands stay server

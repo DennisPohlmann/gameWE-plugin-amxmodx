@@ -19,7 +19,11 @@ the GoldSrc counterpart of the
   logs them for the collector,
 - shows the gameWE menu (`/gamewe`) and, in Counter-Strike, Day of Defeat and
   Team Fortress Classic, a damage summary on death; every player chooses the
-  damage display in the gameWE settings menu, `gamewe.cfg` only sets the default.
+  damage display in the gameWE settings menu, `gamewe.cfg` only sets the default,
+- keeps the players' own settings of gameME's commands: console and chat
+  events (`gamewe_display`, `gamewe_chat`), auto commands at round start,
+  round end and death (`gamewe_auto`) and the language (`gamewe_lang`, 9
+  languages, also for the collector's answers).
 
 The log format and the command interface stay compatible with gameME.
 
@@ -42,8 +46,8 @@ There is one plugin per game:
 | Counter-Strike 1.6, Condition Zero | `gamewe_cstrike.amxx` | cstrike, csx, fakemeta, hamsandwich, nvault |
 | Day of Defeat | `gamewe_dod.amxx` | dodx, dodfun, hamsandwich, nvault |
 | Team Fortress Classic | `gamewe_tfc.amxx` | tfcx, hamsandwich, nvault |
-| Natural Selection | `gamewe_ns.amxx` | - |
-| Half-Life Deathmatch | `gamewe_hlmp.amxx` | - |
+| Natural Selection | `gamewe_ns.amxx` | nvault |
+| Half-Life Deathmatch | `gamewe_hlmp.amxx` | nvault |
 
 What each plugin logs in addition to the game's own log:
 

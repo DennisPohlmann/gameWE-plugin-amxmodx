@@ -13,14 +13,37 @@ only difference is who sees the command (there is no option for this):
   for example `"Name<2><STEAM_0:0:123><CT>" say "/rank"`.
 - `!rank` (and a plain `rank`) stays **visible** in chat, the game logs it as usual.
 
-`rank`, `skill`, `points`, `place`, `session`, `sdata`, `kpd`, `kdratio`, `kdeath`,
-`next`, `load`, `status`, `top5`, `top10`, `top20`, `maps`, `map_stats`, `clans`,
-`cheaters`, `statsme`, `weapons`, `weapon`, `action`, `actions`, `accuracy`,
-`targets`, `target`, `kills`, `kill`, `player_kills`, `cmds`, `commands`, `help`,
-`gstats`, `global_stats`, `hideranking [1|0|on|off|hide|show]`,
-`gamewe_hideranking [1|0|on|off|hide|show]`, and the old gameME settings commands
-`gamewe_display 0|1`, `gamewe_chat 0|1`, `gamewe_atb 0|1`, `gamewe_reset`. The `gameme_*`
-spellings are silent with `/` too.
+`rank`, `skill`, `points`, `place`, `session`, `sdata`, `session_data`, `kpd`,
+`kdratio`, `kdeath`, `next`, `load`, `status`, `servers`, `top5`, `top10`, `top20`,
+`maps`, `map_stats`, `clans`, `cheaters`, `statsme`, `weapons`, `weapon`, `action`,
+`actions`, `accuracy`, `targets`, `target`, `kills`, `kill`, `player_kills`, `cmd`,
+`cmds`, `commands`, `help`, `gstats`, `global_stats`, `hideranking [1|0|on|off|hide|show]`,
+`gamewe_hideranking [1|0|on|off|hide|show]`, `gamewe_atb 0|1`, `gamewe_reset [0|1]`.
+The `gameme_*` spellings are silent with `/` too.
+
+The collector answers gameME's command list (its USAGE.md lists them): the
+stats in chat or a menu (`!rank`, `!kpd`, `!session`, `!next`, `!top5`,
+`!top10`, `!top20`, and `!place`, `!kdeath`, `!session_data` to everybody),
+web pages (`!statsme`, `!status`, `!servers`, `!load`, `!clans`, `!cheaters`,
+`!maps`, `!weapons`, `!accuracy`, `!targets`, `!kills`, `!actions`; opened in
+the MOTD window on Counter-Strike, sent as a chat line in the other games,
+whose MOTD shows no web pages), `!hideranking`, `!settings`, `!gamewe_reset`
+(if the server allows it) and `!help`.
+
+### Settings the plugin keeps
+
+These are answered by the plugin itself, in the player's language, and saved
+per SteamID ([CONFIG.md](CONFIG.md#per-player-settings)); the collector does
+not see them as commands. With `/` they are hidden from chat, with `!` or
+without a prefix they stay visible. The `gameme_*` spellings work as well. A
+player can use them at most once per `gamewe_chat_cooldown`.
+
+| Command | Effect |
+|---------|--------|
+| `gamewe_display 0\|1` | console events off or on (default on): the collector's points of your kills and actions in the console, when the collector has `gamewe_console_events` on |
+| `gamewe_chat 0\|1` | global chat events off or on (default on): the collector's announcements of player and team actions with points, when the collector has `gamewe_global_chat` on |
+| `gamewe_auto start\|end\|kill <command>` | a command the plugin sends for you at round start (`start`), round end (`end`, both as the game logs `Round_Start` / `Round_End`; games without rounds have none) or when you die (`kill`, as gameME), as if you typed `/<command>`. Only `rank`, `skill`, `points`, `kpd`, `kdratio`, `session`, `sdata`, `next`, `top5`, `top10`, `top20`, `statsme`; `gamewe_auto start clear` removes one, `gamewe_auto clear` all, `gamewe_auto` alone lists them. The chat cooldown applies |
+| `gamewe_lang en\|de\|ru\|es\|fr\|pt\|nl\|dk\|pl` | the language of the plugin's messages and settings menu entries and of the collector's answers. The plugin logs `setup "gamewe_lang" (value "de")` for the collector, also when the player joins. Without a choice the plugin uses the game's language (setinfo `lang`) and the collector English. The main menu and the damage display stay English |
 
 `!hideranking` or `/gamewe_hideranking` hides the player in the ranking (`1`/`on`/`hide`),
 shows them again (`0`/`off`/`show`) or toggles without an argument. The collector does this
@@ -45,6 +68,10 @@ collector (`gamewe_amx_hidestate`, asked for with `requested "hideranking"` when
 the menu opens the first time). As long as no state has arrived (a collector
 without this command), the entry is "Hide or show me in the ranking" and switches
 (`/gamewe_hideranking`).
+
+The settings menu also has "Console events" and "Global chat" with the
+player's current value (on, off; `gamewe_display`, `gamewe_chat` above);
+selecting one switches it.
 
 In Counter-Strike, Day of Defeat and Team Fortress Classic the settings menu also
 has "Damage display" with the player's current value: server default, off, menu or

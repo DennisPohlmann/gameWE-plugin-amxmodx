@@ -49,4 +49,5 @@ release. The workflow then builds that tag with AMX Mod X 1.10 and uploads the
 
 `addons/amxmodx/scripting/gamewe_<game>.sma` holds the game specific
 code, `include/gamewe_core.inc` the commands, chat and menu shared by all games,
-`include/gamewe_xstats.inc` the weapon statistics.
+`include/gamewe_xstats.inc` the weapon statistics, `include/gamewe_lang.inc` the
+plugin's messages in the 9 languages of `gamewe_lang`.
