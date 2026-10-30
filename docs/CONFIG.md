@@ -16,7 +16,7 @@ are clamped.
 | `gamewe_message_prefix` | | Text put in front of every gameWE chat message, also in place of the `[gameWE]` of the collector's answers; up to 63 characters, [color tags](#color-tags) allowed, e.g. `"{lightgreen}[MyServer]{default}"`. Empty: the plugin's messages have no prefix and the collector's keep `[gameWE]`. |
 | `gamewe_chat_cooldown` | `1.0` | Seconds between two logged `/` commands of one player, so nobody can flood the collector, `0`-`30`. `0` turns it off. Commands in between are hidden but not logged. |
 | `gamewe_log_damage` | `1` | Counter-Strike: log an `attacked` line for every bullet hit (`0` off, `1` on). |
-| `gamewe_damage_display` | `0` | Counter-Strike, Day of Defeat, Team Fortress Classic: default for players: damage summary on death (`0` off, `1` menu, `2` chat). Each player can override it in the settings menu. |
+| `gamewe_damage_display` | `0` | Counter-Strike, Day of Defeat: default for players: damage summary on death (`0` off, `1` menu, `2` chat). Each player can override it in the settings menu. |
 | `gamewe_damage_display_allow` | `1` | `0` switches the damage display off for everyone; players cannot enable it then. |
 | `gamewe_plugin_version` | | Read only, the plugin version. |
 
@@ -27,8 +27,8 @@ The damage display is chosen by each player in the gameWE settings menu (see
 `gamewe_damage_display` is only the default for players who have not chosen
 (or chose "server default"), so `0` means "off by default, players can switch
 it on". To forbid it completely, set `gamewe_damage_display_allow 0`; the menu
-then shows the entry as disabled. Natural Selection and Half-Life have no
-damage data, so their settings menu has no damage entry.
+then shows the entry as disabled. Half-Life has no
+damage data, so its settings menu has no damage entry.
 
 Every player also chooses the collector's console events and global chat
 events (`gamewe_display 0|1`, `gamewe_chat 0|1`, on by default; the
@@ -60,8 +60,8 @@ matter.
 | `{teamcolor}`, `{team}`, `{red}`, `{lightred}`, `{darkred}`, `{blue}`, `{lightblue}`, `{grey}`, `{gray}` | team color |
 | `{yellow}`, `{orange}`, `{purple}` | removed |
 
-The gameME tags `x01`, `x03` and `x04` work as well. Day of Defeat, Team
-Fortress Classic, Natural Selection and Half-Life have no chat colors: the plugin
+The gameME tags `x01`, `x03` and `x04` work as well. Day of Defeat and
+Half-Life have no chat colors: the plugin
 removes all tags there. The cvar has the same name as in the SourceMod plugin,
 so one `gamewe_message_prefix` line works for both.
 

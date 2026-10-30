@@ -16,7 +16,7 @@ AMXX_INCLUDE ?= $(TOOLDIR)/include
 GIT_TAG     := $(shell git describe --tags --exact-match --match 'v*' 2>/dev/null)
 VERSION     ?= $(if $(GIT_TAG),$(patsubst v%,%,$(GIT_TAG)),$(shell cat VERSION))
 
-MODS     := cstrike dod tfc ns hlmp
+MODS     := cstrike dod hlmp
 SRC      := addons/amxmodx/scripting
 GEN      := build/gen
 STAGE    := build/stage

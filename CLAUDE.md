@@ -2,7 +2,7 @@
 
 AMX Mod X (Pawn) plugins for Half-Life 1 servers, based on the gameME plugin
 2.4. One plugin per game (`addons/amxmodx/scripting/gamewe_<game>.sma`:
-cstrike, dod, tfc, ns, hlmp); the shared code is in `include/gamewe_core.inc`
+cstrike, dod, hlmp); the shared code is in `include/gamewe_core.inc`
 (server commands, chat, menu, per-player settings) and
 `include/gamewe_xstats.inc` (weaponstats, damage display).
 The plugins write extra log lines for the gameWE collector (`log_message`)

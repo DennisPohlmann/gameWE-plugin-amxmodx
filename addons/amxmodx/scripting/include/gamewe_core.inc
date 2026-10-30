@@ -14,7 +14,7 @@
  * Define GAMEWE_FULL_MENU before including this file for the long menu
  * (rank, clans, weapons, ...); otherwise the short menu is used.
  *
- * Define GAMEWE_DAMAGE_DISPLAY for mods with damage data (csx, dodx, tfcx,
+ * Define GAMEWE_DAMAGE_DISPLAY for mods with damage data (csx, dodx,
  * see gamewe_xstats.inc): adds the cvars gamewe_damage_display(_allow) and
  * the per-player "Damage display" setting.
  *

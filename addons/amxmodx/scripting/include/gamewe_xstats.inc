@@ -2,7 +2,7 @@
  * gameWE - AMX Mod X plugin, weapon statistics
  *
  * Writes the "weaponstats" and "weaponstats2" lines from the stats module
- * of the mod (csx, dodx, tfcx). Include it after the module include and set
+ * of the mod (csx, dodx). Include it after the module include and set
  * GAMEWE_WSTATS_SIZE to the size of the stats array of get_user_wstats().
  *
  * Also the damage display: the damage a player did and received during the
@@ -33,7 +33,7 @@
 	#define GAMEWE_WSTATS_SIZE 8
 #endif
 
-// order of the stats array, the same in csx, dodx and tfcx
+// order of the stats array, the same in csx and dodx
 #define GAMEWE_WS_KILLS      0
 #define GAMEWE_WS_DEATHS     1
 #define GAMEWE_WS_HEADSHOTS  2
@@ -114,7 +114,7 @@ stock gamewe_log_weaponstats_alive()
 	}
 }
 
-// forward of csx, dodx and tfcx
+// forward of csx and dodx
 public client_death(killer, victim, wpnindex, hitplace, TK)
 {
 	gamewe_log_weaponstats(victim)
@@ -168,7 +168,7 @@ stock gamewe_damage_forget(id)
 	}
 }
 
-// forward of csx, dodx and tfcx
+// forward of csx and dodx
 public client_damage(attacker, victim, damage, wpnindex, hitplace, TA)
 {
 	if (attacker < 1 || attacker > MaxClients || victim < 1 || victim > MaxClients || attacker == victim || damage <= 0) {

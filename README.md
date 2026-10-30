@@ -17,8 +17,8 @@ the GoldSrc counterpart of the
   (`gamewe_amx_psay`, `gamewe_amx_msay`, ...),
 - hides the stats chat commands (`rank`, `/top10`, ...) from chat, but still
   logs them for the collector,
-- shows the gameWE menu (`/gamewe`) and, in Counter-Strike, Day of Defeat and
-  Team Fortress Classic, a damage summary on death; every player chooses the
+- shows the gameWE menu (`/gamewe`) and, in Counter-Strike and Day of
+  Defeat, a damage summary on death; every player chooses the
   damage display in the gameWE settings menu, `gamewe.cfg` only sets the default,
 - keeps the players' own settings of gameME's commands: console and chat
   events (`gamewe_display`, `gamewe_chat`), auto commands at round start,
@@ -45,21 +45,24 @@ There is one plugin per game:
 |------|--------|-------------------|
 | Counter-Strike 1.6, Condition Zero | `gamewe_cstrike.amxx` | cstrike, csx, fakemeta, hamsandwich, nvault |
 | Day of Defeat | `gamewe_dod.amxx` | dodx, dodfun, hamsandwich, nvault |
-| Team Fortress Classic | `gamewe_tfc.amxx` | tfcx, hamsandwich, nvault |
-| Natural Selection | `gamewe_ns.amxx` | nvault |
 | Half-Life Deathmatch | `gamewe_hlmp.amxx` | nvault |
+
+Team Fortress Classic and Natural Selection are no longer supported (the
+gameWE collector retired them): their plugins `gamewe_tfc` and `gamewe_ns`
+are no longer built. A server that still runs one keeps working with the
+copy it has.
 
 What each plugin logs in addition to the game's own log:
 
-| | cstrike | dod | tfc | ns | hlmp |
-|---|:-:|:-:|:-:|:-:|:-:|
-| `weaponstats`, `weaponstats2` | yes | yes | yes | | |
-| kill and suicide positions | yes | | | | |
-| `headshot` action | yes | | | | |
-| `attacked` lines (bullet hits) | yes | | | | |
-| hidden chat commands, menu | yes | yes | yes | yes | yes |
-| team swap | yes | yes | | | |
-| colored chat | yes | | | | |
+| | cstrike | dod | hlmp |
+|---|:-:|:-:|:-:|
+| `weaponstats`, `weaponstats2` | yes | yes | |
+| kill and suicide positions | yes | | |
+| `headshot` action | yes | | |
+| `attacked` lines (bullet hits) | yes | | |
+| hidden chat commands, menu | yes | yes | yes |
+| team swap | yes | yes | |
+| colored chat | yes | | |
 
 ## Quick start
 

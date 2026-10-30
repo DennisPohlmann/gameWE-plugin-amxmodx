@@ -73,7 +73,7 @@ The settings menu also has "Console events" and "Global chat" with the
 player's current value (on, off; `gamewe_display`, `gamewe_chat` above);
 selecting one switches it.
 
-In Counter-Strike, Day of Defeat and Team Fortress Classic the settings menu also
+In Counter-Strike and Day of Defeat the settings menu also
 has "Damage display" with the player's current value: server default, off, menu or
 chat. Selecting it switches to the next value and shows the menu again;
 "server default" follows `gamewe_damage_display` (the value is shown in
