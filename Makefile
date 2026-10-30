@@ -50,10 +50,10 @@ build:
 
 package: build
 	install -d $(DIST)
-	rm -f $(DIST)/$(PKG).tar.gz $(DIST)/$(PKG).sha256
+	rm -f $(DIST)/$(PKG).tar.gz $(DIST)/$(PKG).sha256 $(DIST)/$(PKG).tar.gz.sha256
 	tar --sort=name --owner=0 --group=0 --numeric-owner --mtime='2000-01-01 00:00Z' \
 		-C $(STAGE) -czf $(DIST)/$(PKG).tar.gz addons
-	cd $(DIST) && sha256sum $(PKG).tar.gz > $(PKG).sha256
+	cd $(DIST) && sha256sum $(PKG).tar.gz > $(PKG).tar.gz.sha256
 	@echo "built $(DIST)/$(PKG).tar.gz"
 
 clean:

@@ -42,7 +42,7 @@ jobs:
           name: gamewe-amxmodx
           path: |
             dist/*.tar.gz
-            dist/*.sha256
+            dist/*.tar.gz.sha256
           if-no-files-found: error
 
   release:
@@ -101,4 +101,4 @@ jobs:
       - name: add the package to the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "v$RELEASE" dist/*.tar.gz dist/*.sha256 --repo "$GITHUB_REPOSITORY"
+        run: gh release upload "v$RELEASE" dist/*.tar.gz dist/*.tar.gz.sha256 --repo "$GITHUB_REPOSITORY"

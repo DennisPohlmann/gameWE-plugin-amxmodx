@@ -12,7 +12,7 @@ the AMX Mod X sources (needs `git`, `gcc-multilib` and `g++-multilib`, because
 ```bash
 make compiler             # build/amxx-1.10/amxxpc and its includes
 make build                # build/stage/addons/amxmodx/plugins/gamewe_*.amxx
-make package              # dist/gamewe-amxmodx-<version>.tar.gz and .sha256
+make package              # dist/gamewe-amxmodx-<version>.tar.gz and .tar.gz.sha256
 make compiler build AMXX=1.9   # check the build with AMX Mod X 1.9
 ```
 
@@ -42,8 +42,8 @@ the next version:
 For a release it writes `VERSION` and `CHANGELOG.md`, commits them as
 `chore(release): vX.Y.Z [skip ci]`, tags `vX.Y.Z` and creates the GitHub
 release. The workflow then builds that tag with AMX Mod X 1.10 and uploads the
-`.tar.gz` (the five `.amxx` files) and its `.sha256` to the release. Never edit
-`VERSION` or `CHANGELOG.md` by hand.
+`.tar.gz` (the five `.amxx` files) and its `.tar.gz.sha256` to the release.
+Never edit `VERSION` or `CHANGELOG.md` by hand.
 
 ## Source layout
 

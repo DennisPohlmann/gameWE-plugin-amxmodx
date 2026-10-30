@@ -24,7 +24,8 @@ server log as well.
   running. `amxx version` in the server console shows the version.
 - The AMX Mod X modules of your game (see the table below). They ship with AMX Mod X.
 - A running gameWE collector that the game server can reach over UDP.
-- The release file `gamewe-amxmodx-<version>.tar.gz` and its `.sha256`.
+- The release file `gamewe-amxmodx-<version>.tar.gz` and its
+  `gamewe-amxmodx-<version>.tar.gz.sha256`.
 
 ## Which plugin for which game
 
@@ -51,7 +52,7 @@ from the table above.
 1. **Check the download.** In the folder with both files:
 
    ```bash
-   sha256sum -c gamewe-amxmodx-0.1.0.sha256
+   sha256sum -c gamewe-amxmodx-0.1.0.tar.gz.sha256
    ```
 
    It must print `gamewe-amxmodx-0.1.0.tar.gz: OK`.

@@ -110,7 +110,7 @@ Every step in detail, also for game servers in a container:
 
 ```bash
 make compiler   # build/amxx-1.10/amxxpc and its includes
-make package    # dist/gamewe-amxmodx-<version>.tar.gz and .sha256
+make package    # dist/gamewe-amxmodx-<version>.tar.gz and .tar.gz.sha256
 ```
 
 Requirements, the source layout and the release process:
