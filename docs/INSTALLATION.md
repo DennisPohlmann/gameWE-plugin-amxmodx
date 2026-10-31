@@ -146,10 +146,11 @@ RUN echo "gamewe_cstrike.amxx" >> /home/steam/hlds/cstrike/addons/amxmodx/config
 
 ### Network in a container
 
-The game server sends its log over UDP to the collector. With the collector in the same
-compose project, use the service name (`logaddress_add` needs an IP, so give the
-collector a fixed IP in the compose network). Otherwise use the host IP. The collector
-needs its UDP log port published if it runs on another host.
+The game server sends its log over UDP to the collector. `logaddress_add` only takes an
+IP address, not a host or service name. With the collector in the same compose project,
+give the collector a fixed IP in the compose network and use that IP. Otherwise use the
+IP of the host the collector runs on. The collector needs its UDP log port published if
+it runs on another host.
 
 ## Send the log to the collector
 
@@ -157,11 +158,13 @@ Add to `server.cfg`, with the IP and UDP port of your collector:
 
 ```
 log on
-logaddress_add 192.0.2.10 <collector port>
+logaddress_add 203.0.113.5 41337
 ```
 
-The port is the one the collector listens on for game server logs; see the collector
-documentation. With `logaddress_add` you can send the log to more than one address.
+GoldSrc (HLDS) takes IP and port separated by a space; the `ip:port` form of Source
+servers does not work here. 41337 is the collector's default UDP port for game server
+logs (`listen.udp.port` in the collector config). With `logaddress_add` you can send
+the log to more than one address.
 `logaddress_del` removes an address, `logaddress_delall` all.
 
 The collector also sends commands back to the server over RCON, so `rcon_password` must
