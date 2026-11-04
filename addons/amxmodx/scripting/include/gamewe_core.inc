@@ -117,6 +117,7 @@ new Float:g_gamewe_last_trigger[MAX_PLAYERS + 1]
 new g_gamewe_hideranking[MAX_PLAYERS + 1] = { GAMEWE_HIDERANKING_UNKNOWN, ... }
 new bool:g_gamewe_hideranking_wait[MAX_PLAYERS + 1]
 new Float:g_gamewe_hideranking_asked[MAX_PLAYERS + 1] // last request, at most one per 5 seconds
+new Float:g_gamewe_last_menu_item[MAX_PLAYERS + 1]
 
 // per-player settings: -1 = server default (cvar), otherwise the player's own choice
 #define GAMEWE_SETTING_DEFAULT   -1
@@ -797,6 +798,7 @@ public client_putinserver(id)
 	g_gamewe_last_trigger[id] = 0.0
 	g_gamewe_hideranking[id] = GAMEWE_HIDERANKING_UNKNOWN
 	g_gamewe_hideranking_wait[id] = false
+	g_gamewe_last_menu_item[id] = 0.0
 	g_gamewe_hideranking_asked[id] = 0.0
 	for (new i = 0; i < GAMEWE_AUTO_EVENTS; i++) {
 		g_gamewe_last_auto[id][i] = 0.0
@@ -1375,10 +1377,25 @@ public gamewe_menu_ranking_callback(id, menu, item)
 	return ITEM_ENABLED
 }
 
+// menuselect from the console: selections log for the collector and write the
+// nVault, at most two per second.
+stock bool:gamewe_menu_flood(id)
+{
+	new Float:now = get_gametime()
+	if (now - g_gamewe_last_menu_item[id] < 0.5) {
+		return true
+	}
+	g_gamewe_last_menu_item[id] = now
+	return false
+}
+
 public gamewe_menu_main_handle(id, menu, item)
 {
 	if (item < 0) {
 		return PLUGIN_CONTINUE
+	}
+	if (gamewe_menu_flood(id)) {
+		return PLUGIN_HANDLED
 	}
 	new command[48], name[2], access, callback
 	menu_item_getinfo(menu, item, access, command, charsmax(command), name, charsmax(name), callback)
@@ -1399,6 +1416,9 @@ public gamewe_menu_command_handle(id, menu, item)
 			g_gamewe_hideranking_wait[id] = false
 		}
 		return PLUGIN_CONTINUE
+	}
+	if (gamewe_menu_flood(id)) {
+		return PLUGIN_HANDLED
 	}
 	new command[48], name[2], access, callback
 	menu_item_getinfo(menu, item, access, command, charsmax(command), name, charsmax(name), callback)
