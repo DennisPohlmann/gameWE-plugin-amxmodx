@@ -51,7 +51,7 @@ line (`2` above), with or without `#` in front. Lists are separated by commas
 | `gamewe_amx_say "<message>"` | Chat message to everybody. |
 | `gamewe_amx_csay "<message>"` | Center message to everybody. |
 | `gamewe_amx_hint <userid[,userid...]> "<message>"` | HUD message at the bottom. |
-| `gamewe_amx_msay <time> <userid> [handler] "<menu text>"` | Menu for `time` seconds (1-120, otherwise 15). Lines are separated by `\n` or `^n`. With `handler 1` the choice is logged as `selected "<1-9>"` or `selected "cancel"`. |
+| `gamewe_amx_msay <time> <userid> [handler] "<menu text>"` | Menu for `time` seconds (1-120, otherwise 15). Lines are separated by a literal `\n`; a `^n` in the text (e.g. in a player name) stays text. With `handler 1` the choice is logged as `selected "<1-9>"` or `selected "cancel"`. |
 | `gamewe_amx_browse <userid> "<url>"` | Opens a website in the MOTD window. Only `http://` and `https://` URLs. |
 | `gamewe_amx_swap <userid>` | Moves a player to the other team (Counter-Strike, Day of Defeat) and logs `joined team`. |
 | `gamewe_amx_console_event <userid[,userid...]> "<message>"` | A console line for the listed players whose console events are on (`gamewe_display`): the collector's points of kills and actions. |

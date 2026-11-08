@@ -590,7 +590,9 @@ public gamewe_cmd_hint(id, level, cid)
 	return PLUGIN_HANDLED
 }
 
-// "<time> <userid> [handler] <text>", lines separated by \n or ^n
+// "<time> <userid> [handler] <text>", lines separated by a literal \n (the
+// collector's separator); a literal ^n stays text, so a player name cannot
+// start a menu line of its own
 public gamewe_cmd_msay(id, level, cid)
 {
 	new args[GAMEWE_MAX_ARGS], token[32]
@@ -617,7 +619,6 @@ public gamewe_cmd_msay(id, level, cid)
 	new text[GAMEWE_MAX_MENU]
 	gamewe_rest_of(args, pos, text, charsmax(text))
 	replace_string(text, charsmax(text), "\n", "^n")
-	replace_string(text, charsmax(text), "^^n", "^n")
 	gamewe_remove_color_tags(text, charsmax(text))
 
 	if (player > 0 && text[0] != EOS) {
