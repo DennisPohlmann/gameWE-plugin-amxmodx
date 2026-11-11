@@ -43,6 +43,15 @@ new g_gamewe_log_damage
 // the engine kill line that is replaced by the one with positions
 new g_gamewe_replaced_line[512]
 
+// models of CS 1.6 and Condition Zero, logged as roles; others (custom models) are not logged
+new const g_gamewe_cs_models[][] = {
+	"terror", "leet", "arctic", "guerilla", "militia",
+	"urban", "gsg9", "sas", "gign", "spetsnaz", "vip"
+}
+// the model last logged per player, with the userid it was logged for
+new g_gamewe_role[MAX_PLAYERS + 1]
+new g_gamewe_role_userid[MAX_PLAYERS + 1]
+
 
 public plugin_init()
 {
@@ -56,6 +65,35 @@ public plugin_init()
 	register_event("Damage", "gamewe_cs_damage", "b", "2!0", "3=0", "4!0")
 	register_logevent("gamewe_cs_round_end", 2, "1=Round_End")
 	register_forward(FM_AlertMessage, "gamewe_cs_alert_message")
+	RegisterHam(Ham_Spawn, "player", "gamewe_cs_spawned", 1)
+}
+
+
+/*
+ * Player model as role: "Name<2><STEAM_0:0:123><CT>" changed role to "gign"
+ * (the line of the SourceMod plugin), logged at spawn when the model changed.
+ */
+public gamewe_cs_spawned(id)
+{
+	if (id < 1 || id > MaxClients || !is_user_alive(id)) {
+		return
+	}
+	new model[32]
+	cs_get_user_model(id, model, charsmax(model))
+	new role = -1
+	for (new i = 0; i < sizeof(g_gamewe_cs_models); i++) {
+		if (equal(model, g_gamewe_cs_models[i])) {
+			role = i
+			break
+		}
+	}
+	new userid = get_user_userid(id)
+	if (role < 0 || (g_gamewe_role_userid[id] == userid && g_gamewe_role[id] == role)) {
+		return
+	}
+	g_gamewe_role[id] = role
+	g_gamewe_role_userid[id] = userid
+	gamewe_log_player_event(id, "changed role to", g_gamewe_cs_models[role])
 }
 
 

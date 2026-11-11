@@ -14,6 +14,7 @@ The plugin writes standard HL log lines (`"Name<userid><authid><team>"`):
 "Name<2><STEAM_0:0:123><CT>" triggered "weaponstats2" (weapon "ak47") (head "1") (chest "3") (stomach "1") (leftarm "0") (rightarm "1") (leftleg "0") (rightleg "0")
 "Name<2><STEAM_0:0:123><CT>" killed "Other<3><STEAM_0:1:456><TERRORIST>" with "ak47" (attacker_position "-1022 380 -60") (victim_position "-830 512 -60")
 "Name<2><STEAM_0:0:123><CT>" triggered "headshot"
+"Name<2><STEAM_0:0:123><CT>" changed role to "gign"
 "Name<2><STEAM_0:0:123><CT>" attacked "Other<3><STEAM_0:1:456><TERRORIST>" with "ak47" (damage "36") (damage_armor "4") (health "64") (armor "96") (hitgroup "chest")
 "Name<2><STEAM_0:0:123><CT>" say "/rank"
 "Name<2><STEAM_0:0:123><CT>" selected "3"
@@ -32,6 +33,10 @@ The plugin writes standard HL log lines (`"Name<userid><authid><team>"`):
   when the player joins; the collector answers in that language.
 - Counter-Strike: the plugin replaces the kill and suicide lines of the game by the
   same lines with positions, so each kill is still logged once.
+- Counter-Strike: `changed role to` is the player model, logged at spawn when it
+  changed (as the SourceMod plugin does): `terror`, `leet`, `arctic`, `guerilla`,
+  `militia`, `urban`, `gsg9`, `sas`, `gign`, `spetsnaz`, `vip`. Other (custom)
+  models are not logged.
 
 ## Server commands
 

@@ -11,7 +11,7 @@ the GoldSrc counterpart of the
 [gameWE SourceMod plugin](https://github.com/DennisPohlmann/gameWE-plugin-sourcemod). It
 
 - writes extra statistics to the server log: per-weapon accuracy and hit groups
-  (`weaponstats`, `weaponstats2`), kill positions, headshots and bullet hits
+  (`weaponstats`, `weaponstats2`), kill positions, player models, headshots and bullet hits
   (Counter-Strike),
 - offers the server commands the collector uses to answer players in game
   (`gamewe_amx_psay`, `gamewe_amx_msay`, ...),
@@ -59,6 +59,7 @@ What each plugin logs in addition to the game's own log:
 | `weaponstats`, `weaponstats2` | yes | yes | |
 | kill and suicide positions | yes | | |
 | `headshot` action | yes | | |
+| player model (`changed role to`) | yes | | |
 | `attacked` lines (bullet hits) | yes | | |
 | hidden chat commands, menu | yes | yes | yes |
 | team swap | yes | yes | |
