@@ -14,7 +14,7 @@ out=${2:?usage: build-amxxpc.sh <1.9|1.10> <out-dir>}
 
 case "$version" in
 	1.9)  tag=1.9.0.5303;  commit=b88b763a63bc7165f48e326c226eb05f9db0e54a ;;
-	1.10) tag=1.10.0.5487; commit=8fc12670ea86470a0bfed4c35db5de73d3a39e8a ;;
+	1.10) tag=1.10.0.5488; commit=844eebd471635c197f5f4fffb71c2ea0628310fd ;;
 	*) echo "unknown AMX Mod X version: $version" >&2; exit 1 ;;
 esac
 
