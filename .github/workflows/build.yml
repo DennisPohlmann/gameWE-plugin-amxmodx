@@ -44,9 +44,13 @@ jobs:
         with:
           fetch-depth: 0 # tags, for the version
       - name: install 32-bit toolchain for amxxpc
+        # the runner's DNS sometimes fails for the Ubuntu mirrors; retry with
+        # short timeouts instead of hanging until the 6 h job limit
+        timeout-minutes: 10
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq --no-install-recommends gcc-multilib g++-multilib
+          apt="sudo apt-get -qq -o Acquire::Retries=5 -o Acquire::http::Timeout=30"
+          $apt update
+          $apt install -y --no-install-recommends gcc-multilib g++-multilib
       - name: build with AMX Mod X 1.9 (compatibility check)
         run: |
           make compiler AMXX=1.9
@@ -120,9 +124,13 @@ jobs:
           ref: v${{ needs.release.outputs.version }}
           fetch-depth: 0 # tags, for the version
       - name: install 32-bit toolchain for amxxpc
+        # the runner's DNS sometimes fails for the Ubuntu mirrors; retry with
+        # short timeouts instead of hanging until the 6 h job limit
+        timeout-minutes: 10
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq --no-install-recommends gcc-multilib g++-multilib
+          apt="sudo apt-get -qq -o Acquire::Retries=5 -o Acquire::http::Timeout=30"
+          $apt update
+          $apt install -y --no-install-recommends gcc-multilib g++-multilib
       - name: package with AMX Mod X 1.10
         run: |
           make compiler AMXX=1.10
