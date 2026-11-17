@@ -36,8 +36,8 @@ need modules of other games and fail to load.
 |------|-------------|--------|--------------------------|
 | Counter-Strike 1.6 | `cstrike/` | `gamewe_cstrike.amxx` | `cstrike`, `csx`, `fakemeta`, `hamsandwich`, `nvault` |
 | Counter-Strike: Condition Zero | `czero/` | `gamewe_cstrike.amxx` | `cstrike`, `csx`, `fakemeta`, `hamsandwich`, `nvault` |
-| Day of Defeat | `dod/` | `gamewe_dod.amxx` | `dodx`, `dodfun`, `hamsandwich`, `nvault` |
-| Half-Life Deathmatch | `valve/` | `gamewe_hlmp.amxx` | `nvault` |
+| Day of Defeat | `dod/` | `gamewe_dod.amxx` | `dodx`, `dodfun`, `fakemeta`, `hamsandwich`, `nvault` |
+| Half-Life Deathmatch | `valve/` | `gamewe_hlmp.amxx` | `fakemeta`, `hamsandwich`, `nvault` |
 
 AMX Mod X loads most modules on its own when a plugin needs them. If one is commented
 out with `;` in `addons/amxmodx/configs/modules.ini`, remove the `;`.

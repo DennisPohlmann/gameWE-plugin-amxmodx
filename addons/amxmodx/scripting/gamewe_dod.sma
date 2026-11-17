@@ -3,7 +3,7 @@
  *
  * Logs extended player statistics to the game server log for the gameWE
  * collector and shows its answers (rank, top10, session ...) in game.
- * Needs the modules dodx, dodfun, hamsandwich and nvault.
+ * Needs the modules dodx, dodfun, fakemeta, hamsandwich and nvault.
  *
  * Fork of the gameME Plugin 2.4 for AMX Mod X
  * (https://github.com/gamemedev/plugin-amxmodx),
@@ -36,12 +36,14 @@
 #define GAMEWE_WSTATS_SIZE DODX_MAX_STATS
 #include <gamewe_core>
 #include <gamewe_xstats>
+#include <gamewe_headshots>
 
 
 public plugin_init()
 {
 	gamewe_core_init("dod")
 	gamewe_xstats_init()
+	gamewe_headshots_init()
 	register_logevent("gamewe_dod_round_end", 2, "1=Round_End")
 }
 

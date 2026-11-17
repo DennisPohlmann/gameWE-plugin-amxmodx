@@ -3,7 +3,7 @@
  *
  * Logs extended player statistics to the game server log for the gameWE
  * collector and shows its answers (rank, top10, session ...) in game.
- * Needs no extra modules.
+ * Needs the modules fakemeta, hamsandwich and nvault.
  *
  * Fork of the gameME Plugin 2.4 for AMX Mod X
  * (https://github.com/gamemedev/plugin-amxmodx),
@@ -30,11 +30,13 @@
 #include <amxmodx>
 
 #include <gamewe_core>
+#include <gamewe_headshots>
 
 
 public plugin_init()
 {
 	gamewe_core_init("hlmp")
+	gamewe_headshots_init()
 }
 
 

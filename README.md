@@ -44,8 +44,8 @@ There is one plugin per game:
 | Game | Plugin | AMX Mod X modules |
 |------|--------|-------------------|
 | Counter-Strike 1.6, Condition Zero | `gamewe_cstrike.amxx` | cstrike, csx, fakemeta, hamsandwich, nvault |
-| Day of Defeat | `gamewe_dod.amxx` | dodx, dodfun, hamsandwich, nvault |
-| Half-Life Deathmatch | `gamewe_hlmp.amxx` | nvault |
+| Day of Defeat | `gamewe_dod.amxx` | dodx, dodfun, fakemeta, hamsandwich, nvault |
+| Half-Life Deathmatch | `gamewe_hlmp.amxx` | fakemeta, hamsandwich, nvault |
 
 Team Fortress Classic and Natural Selection are no longer supported (the
 gameWE collector retired them): their plugins `gamewe_tfc` and `gamewe_ns`
@@ -58,7 +58,7 @@ What each plugin logs in addition to the game's own log:
 |---|:-:|:-:|:-:|
 | `weaponstats`, `weaponstats2` | yes | yes | |
 | kill and suicide positions | yes | | |
-| `headshot` action | yes | | |
+| `headshot` action | yes | yes | yes |
 | player model (`changed role to`) | yes | | |
 | `attacked` lines (bullet hits) | yes | | |
 | hidden chat commands, menu | yes | yes | yes |
